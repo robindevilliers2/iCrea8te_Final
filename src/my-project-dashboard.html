@@ -1,0 +1,302 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-divider/paper-divider.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../bower_components/ability-chart/ability-chart.html">
+<link rel="import" href="my-design-card.html">
+<link rel="import" href="my-message-threads.html">
+<dom-module id="my-project-dashboard">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+        
+        .mainBtn{ 
+            width: 150px;
+            height: 30px;
+            color: black;
+            font-weight: 600;
+        }
+        
+        paper-spinner.multi {
+            width: 50px;
+            height: 50px;
+          --paper-spinner-layer-1-color: var(--paper-purple-500);
+          --paper-spinner-layer-2-color: var(--paper-cyan-500);
+          --paper-spinner-layer-3-color: var(--paper-blue-grey-500);
+          --paper-spinner-layer-4-color: var(--paper-amber-500);
+        }
+    </style>
+    <app-localstorage-document id="projectId" key="projectId" data="{{projectId}}"></app-localstorage-document>
+    <app-localstorage-document id="uid" key="uid" data="{{uid}}"></app-localstorage-document>
+    <app-localstorage-document id="designId" key="designId" data="{{designId}}"></app-localstorage-document>
+    <div style='text-align: center'>
+        <img src="../images/name.png" style="width: 175px; height:55px;">
+    </div>
+    <div style="text-align: center">
+    <div id="spinner1" style= "text-align: center;">
+        <paper-spinner class="multi"  style="margin-top: 5%;" active></paper-spinner>
+    </div>
+        <div id = "headerContent">
+        <div style= "text-align: left;">
+            <div style="float:left">
+            <iron-icon icon="icons:class" style="height: 75px; width: 75px; color: #337;"></iron-icon>
+            </div>
+            <h1 id = "projectName" style="font-weight: 700; font-size: 18px;">Project Name</h1>
+            <h3 id = "projectCategory" style="font-weight: 500; font-size: 16px;">Category</h3>
+            <strong> Assigned to: &nbsp;<text id = "assignee"></text> </strong>
+            <paper-button id = "assignBtn" class="mainBtn" style="background-color: #479" on-click="assignProject">Assign to  me</paper-button>
+            </div>
+        </div>
+        <div>
+            <h2 style="text-align: left;">Description, likes and dislikes</h2>          
+            <hr style = "border: 0; width: 90%; color:rgb(150, 150, 168); background-color: #99c; height: 1px;"> <br>
+            <p id = "projectDescription" style = "width: 70%; margin: 0 auto;">
+            </p> <br>
+            <table style = "width:60%; margin: 0 auto;">
+                <tr>
+                    <td style = "width:50%">
+                        <paper-button class="mainBtn" style="background-color: #E35" on-click="dislikedClicked">Dislikes</paper-button>
+                    </td>
+                    <td style = "width:50%">
+                        <paper-button class="mainBtn" style="background-color: #7B7" on-click="likedClicked">liked</paper-button>
+                    </td>
+                </tr>
+            </table>
+            <h4> According to your test this project has been tagged as <h2 id = "styleTag"></h2></h4>
+            <ability-chart id = "chart"  prop = '{"datasets": {"keys": ["Modern", "Abstract", "Retro", "Punk","Classic"], "values": [[90, 60, 40,60,30]], "styles": [{"fillColor":"#99c", "borderColor": "rgb(107, 71, 192)"}]}}'> -->
+             </ability-chart> // telerik, googleCharts, watermarkJS
+        </div>
+    </div>
+    <div style = "text-align: center">
+        <h2 style="text-align: left;">Proposed Designs</h2>          
+        <hr style = "border: 0; width: 90%; color: #99c; background-color: #99c; height: 1px;"> <br>
+        <div id="spinner2" style= "text-align: center;">
+            <paper-spinner class="multi" active></paper-spinner>
+        </div>
+        <div id = "designsDisplay"></div>
+        <iron-label id = "addDesignBtn">
+            <iron-icon icon="icons:add-circle" style="height: 50px; width: 50px; color: rgb(107, 71, 192);" on-click="addDesign"></iron-icon><br>
+            Add new design
+        </iron-label>
+    </div><br>
+  </template>
+
+  <script>
+      
+    var userId    = "";
+    var projectId = "";
+
+/**
+* @polymer
+* @extends HTMLElement
+*/  
+
+    class MyProjectDashboard extends Polymer.Element {
+      static get is() { return 'my-project-dashboard'; }
+        
+        
+        static get properties() {
+        return {
+            currUser:String,
+            projectId: {
+              type: String,
+              notify: true,
+              observer: '_newProject'
+          },
+            uid: {
+                type: String,
+                notify: true,
+                observer: '_newProject'
+            }
+        };
+      }
+        
+        ready(){
+            super.ready();
+        }
+        
+        _newProject(){
+            var pId         = this.projectId;
+            var userId      = this.uid;
+            var desId       = firebase.auth().currentUser.uid
+            var pname       = this.$.projectName;
+            var pcat        = this.$.projectCategory;
+            var spinner1    = this.$.spinner1;
+            var spinner2    = this.$.spinner2;
+            var head        = this.$.headerContent;
+            var description = this.$.projectDescription;
+            var styleTag    = this.$.styleTag;
+            var assignee    = this.$.assignee;
+            var assignBtn   = this.$.assignBtn;
+            var addDesign   = this.$.addDesignBtn;
+            var chart       = this.$.chart;
+            var designDiv   = this.$.designsDisplay;
+            var chartJSON   = "";
+            var assignedTo  = "";
+            var tagWordLst  = "";
+            var maxRating   = 0;
+            spinner1.style.display  = 'block';
+            spinner2.style.display  = 'block';
+            designDiv.style.display = 'none';
+            head.style.display      = 'none';
+            addDesign.style.display = 'none';
+            projectId = pId;
+            console.log("uid: " + userId + " pId: " + pId);
+            db.collection('users').doc(userId).collection('projects').doc(pId).get().then(function(doc){
+                var project = doc.data();
+                pname.innerHTML           = project.name;
+                pcat.innerHTML            = project.category;
+                description.innerHTML     = project.description;
+                assignedTo                = project.assignedTo;
+
+                console.log(chart);
+                console.log("assTo: " + assignedTo);
+                    if (assignedTo == undefined || assignedTo == "undefined"){
+                        assignee.innerHTML      = "nobody yet...";
+                        assignee.style.color    = "#666";
+                    } else {
+                        assignBtn.style.display = 'none';
+                        if (assignedTo == desId) {
+                            addDesign.style.display = 'block';
+                        }
+                        db.collection('users').doc(assignedTo).get().then(function(doc){
+                            assignee.innerHTML   = doc.data().name;
+                            assignee.style.color = "#5A5";
+                        });
+                    }
+                if(userId != firebase.auth().currentUser.uid && (assignedTo == undefined || assignedTo == "undefined")){
+                    assignBtn.style.display = 'block';
+                } else {
+                    assignBtn.style.display = 'none';
+                }
+                tagWordLst = "Modern";
+                maxRating  = project.modern;
+                
+                if(project.retro > maxRating){
+                    maxRating  = project.retro;
+                    tagWordLst = "Retro"; 
+                } else if( project.retro == maxRating ){
+                    tagWordLst += ", Retro";
+                }
+                console.log(maxRating);
+                if(project.classic > maxRating){
+                    maxRating  = project.classic;
+                    tagWordLst = "Classic"; 
+                } else if( project.classic == maxRating ){
+                    tagWordLst += ", Classic";
+                }
+                ;
+                if(project.abstract > maxRating){
+                    maxRating  = project.abstract;
+                    tagWordLst = "Abstract"; 
+                } else if( project.abstract == maxRating ){
+                    tagWordLst += ", Abstract";
+                }
+                
+                if(project.punk > maxRating){
+                    maxRating  = project.punk;
+                    tagWordLst = "Punk"; 
+                } else if( project.punk == maxRating ){
+                    tagWordLst += ", Punk";
+                }
+                
+                styleTag.innerHTML = tagWordLst;
+                
+                db.collection('users').doc(userId).collection('projects').doc(pId).update({
+                    tags: tagWordLst
+                });
+                
+                
+            }).then(function(){
+                    spinner1.style.display = 'none';
+                    head.style.display = 'block';
+            }).catch(e => {console.log(e.message)});
+
+            db.collection('users').doc(userId).collection('projects').doc(pId).collection('proposedDesigns').get().then(function (querySnap) {
+                spinner2.style.display  = 'none';
+                designDiv.style.display = 'block';
+                designDiv.innerHTML     = "";
+                if(querySnap.empty){
+                    designDiv.innerHTML = "You currently dont have any proposed designs...";
+                }else{
+                    querySnap.forEach(function(doc){
+                        var design     = doc.data();
+                        var dynamicEle = document.createElement('my-design-card');
+                        dynamicEle.designName        = design.name;
+                        dynamicEle.designDescription = design.description;
+                        dynamicEle.clientId          = design.userId;
+                        dynamicEle.id                = doc.id;                            
+                        designDiv.appendChild(dynamicEle);
+                    });
+                }
+            }).catch(e => {console.log(e.message)});
+        }
+        
+        dislikedClicked(){
+           window.history.pushState({}, null, '/project-dislikes');
+            window.dispatchEvent(new CustomEvent("location-changed")); 
+        }
+        
+        likedClicked(){
+            window.history.pushState({}, null, '/project-likes');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+        
+        cardClicked () {
+            window.history.pushState({}, null, '/proposed-design');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+        
+        assignProject(){
+            console.log("Testing  the assign button");
+             var pId    = projectId;
+             var userId = this.uid;
+             var desId  = firebase.auth().currentUser.uid
+             console.log(pId + "What up" );
+             db.collection('users').doc(userId).collection('projects').doc(pId).get().then(function(doc){
+                 var project = doc.data();
+                 console.log("Assigning project ... ");
+                 console.log(project);
+                  db.collection('users').doc(desId).collection('projects').add({
+                        name       : project.name,
+                        category   : project.category,
+                        description: project.description,
+                        testTaken  : project.testTaken,
+                        userId     : project.userId,
+                        modern     : project.modern,
+                        abstract   : project.abstract,
+                        retro      : project.retro,
+                        punk       : project.punk,
+                        classic    : project.classic,
+                        userProject: doc.id,
+                        tags       : project.tags,
+                        assignedTo : desId
+                 }).then(function(doc){
+                   pId.data = doc.id;
+                   db.collection('users').doc(userId).collection('projects').doc(pId).update({
+                        assignedTo: desId
+                    }).then(function(){
+                        location.reload();
+                    });
+                }).catch( e => alert(e.message));
+            });
+        }
+
+        addDesign(){
+            window.history.pushState({}, null, '/upload-design');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+        
+    }
+
+    window.customElements.define(MyProjectDashboard.is, MyProjectDashboard);
+  </script>
+</dom-module>

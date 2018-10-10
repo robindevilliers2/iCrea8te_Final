@@ -1,0 +1,110 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-divider/paper-divider.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+
+
+
+<dom-module id="my-project-dislikes">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+        
+        .mainBtn{ 
+            width: 200px; 
+            color: black;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        paper-spinner.multi {
+            width: 50px;
+            height: 50px;
+          --paper-spinner-layer-1-color: var(--paper-purple-500);
+          --paper-spinner-layer-2-color: var(--paper-cyan-500);
+          --paper-spinner-layer-3-color: var(--paper-blue-grey-500);
+          --paper-spinner-layer-4-color: var(--paper-amber-500);
+        }
+    </style>
+    <app-localstorage-document id="projectId" key="projectId" data="{{projectId}}"></app-localstorage-document>
+    <app-localstorage-document id="uid" key="uid" data="{{uid}}"></app-localstorage-document>
+      <div style='text-align: center'>
+          <img src="../images/name.png" style="width: 175px; height:55px;">
+      </div>
+      <div style="width: 80%; margin: 0 auto;" class = "card">
+          <h1>What You Disliked</h1>
+          <hr style = "border: 0; width: 90%; color: #aac; background-color: #aac; height: 1px;"> <br>
+        <div id="spinner1" style= "text-align: center;">
+            <paper-spinner class="multi"  style="margin-top: 5%;" active></paper-spinner>
+        </div>
+        <div id = "dislikedImages" style = "width: 70%; margin: 0 auto;"></div><br><br>
+          <div style = "text-align: right">
+              <paper-button class="mainBtn" style="background-color: #f95" on-click="backClicked">
+                  <iron-icon icon="icons:arrow-back" ></iron-icon>Back to project</paper-button>
+          </div>
+      </div>
+  </template>
+
+  <script>
+      
+    
+    class MyProjectDislikes extends Polymer.Element {
+      static get is() { return 'my-project-dislikes'; }
+        
+        
+        static get properties() {
+        return {
+            currUser:String,
+            projectId: {
+              type: String,
+              notify: true,
+              observer: '_newProject'
+          },
+            uid: {
+                type: String,
+                notify: true,
+            }
+        };
+      }
+        
+        ready(){
+            super.ready();
+        }
+        
+        _newProject(){
+           var dislikedImages= this.$.dislikedImages; 
+           var spinner1      =  this.$.spinner1;
+           var userId        = this.uid;
+           spinner1.style.display = "block"; 
+           dislikedImages.innerHTML = "";
+           db.collection('users').doc(userId).collection('projects').doc(this.projectId).collection('dislikes').get().then(function(querySnap){
+               if(querySnap.empty){
+                   
+               } else {
+                   querySnap.forEach(function(doc){
+                       var path = doc.data().path;
+                       dislikedImages.innerHTML += "<img src = '../images/quickTest/"+path+"' style= 'width: 20%; '>";
+                   });
+               }
+           }).then(function(){
+               spinner1.style.display = "none"; 
+           }).catch( e => {console.log(e.message)});
+        }
+        
+        backClicked(){
+            window.history.pushState({}, null, '/project-dashboard');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+    }
+
+    window.customElements.define(MyProjectDislikes.is, MyProjectDislikes);
+  </script>
+</dom-module>

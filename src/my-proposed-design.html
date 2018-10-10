@@ -1,0 +1,211 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/iron-image/iron-image.html">
+
+
+<dom-module id="my-proposed-design">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+
+      .mainBtn{
+          width: 100px;
+          color: black;
+          font-weight: 600;
+      }
+
+      paper-textarea {
+        --paper-input-container-disabled: {
+          opacity: 1;
+        };
+      }
+
+    </style>
+      <app-localstorage-document id="designId" key="designId" data="{{designId}}"></app-localstorage-document>
+
+      <div style="text-align: center">
+      <div style='text-align: center'>
+          <img src="../images/name.png" style="width: 175px; height:55px;">
+      </div>
+          <div id = "headerContent">
+            <h1 id = "projectName">Proposed Design </h1>
+            <hr style = "border: 0; width: 90%; color: #99c; background-color: #99c; height: 1px;">
+            <h3 id = "designName"> </h3>
+            <h5 id = "designDescription"></h5>
+          </div><br>
+          <div  id = "feedbackContainer" style = "width:100%; margin-bottom: 10%">
+            <div style= "float: left; margin-left: 15%;">
+              <div id="spinner1" style= "text-align: center;">
+                <paper-spinner class="multi" style= "text-align: center; width: 100px; height: 100px" active></paper-spinner>
+              </div>
+              <div id = "propDesignImg" style ="margin: 0 auto; ">             
+              </div>
+            </div>
+            <div style ="float: right; margin-right: 20% ">
+              <div id = "feedbackBtns"  style ="float: right; margin: 0 auto; " >
+                <paper-button class="feedBackBtn" style="background-color: #E35; width: 250px;" value = "NO" on-click="feedbackClicked">Not quite</paper-button><br><br>
+                <paper-button class="feedBackBtn" style="background-color: #7B7; width: 250px;" value = "NEARLY" on-click="feedbackClicked">On the right track</paper-button><br><br>
+                <paper-button class="feedBackBtn" style="background-color: #69E; width: 250px;" value = "YES" on-click="feedbackClicked">Perfect!</paper-button><br><br>
+              </div>
+            </div>
+          </div>
+          <div style= "margin-top: 30%; width: 100%;">
+            <h1 id = "projectName" style = "text-align: center">Comments </h1>
+            <hr style = "border: 0; width: 90%; color: rgb(168, 168, 204); background-color: #99c; height: 1px;">
+            <paper-textarea id="comments" class= "enabled" style= "width: 85%; text-align: left; margin-left: 5%;" label = "Comment here(optional)"></paper-textarea><br>
+            <paper-button on-click="backBtn" style="background-color: #777; width: 100px; height:30px; float: left;margin-left: 5%;">Back</paper-button>
+            <paper-button id = "submitBtn" on-click="submitFeedback" style="background-color: #777; width: 100px; height:30px;float: right;margin-right: 5%; " >Submit</paper-button>
+          </div><br><br>
+      </div>
+  </template>
+
+  <script>
+
+    var feedback = "";
+    var userType = "";
+    class MyProposedDesign extends Polymer.Element {
+      static get is() { return 'my-proposed-design'; }
+
+        static get properties() {
+            return {
+              designId: {
+                type: String,
+                notify: true,
+                observer: '_propDesign'
+              }
+            };
+        }
+
+        ready(){
+            super.ready();
+        }
+
+        _propDesign(){
+          var spinner1          = this.$.spinner1;
+          var propDesignImg     = this.$.propDesignImg;
+          var storageRef        = firebase.storage().ref().child("projects/" + JSON.parse(localStorage.getItem('projectId')) + "/" + JSON.parse(localStorage.getItem('designId')));
+          var projId            = JSON.parse(localStorage.getItem('projectId'));
+          var clientId          = JSON.parse(localStorage.getItem('uid'));
+          var propDesId         = JSON.parse(localStorage.getItem('designId'));
+          var designName        = this.$.designName;
+          var designDescription = this.$.designDescription;
+          var comments          = this.$.comments;
+          var feedBackBtns      = this.$.feedbackBtns.children;
+          var submitBtn         = this.$.submitBtn;
+          var currUser          = firebase.auth().currentUser.uid;
+          console.log("***********************************************");
+          db.collection('users').doc(currUser).get().then(function (doc) {
+              var data = doc.data();
+              userType = data.type;
+              console.log(userType);
+              if (userType == "CLIENT" ){
+                submitBtn.style.display = 'block';
+                comments.disabled       = false;     
+              } 
+              else if (userType == "DESIGNER"){
+                submitBtn.style.display = 'none';
+                comments.disabled       = true;
+                comments.style.color    = "green";    
+              }
+              db.collection('users').doc(clientId).collection('projects').doc(projId).collection('proposedDesigns').doc(propDesId).get().then(function (doc) {
+                data = doc.data();
+                designName.innerHTML        = data.name;
+                designDescription.innerHTML = data.description;
+                for(var i = 0; i < feedBackBtns.length; i++){
+                  feedBackBtns[i].style.borderStyle = "none";
+                  if(userType == "DESIGNER"){
+                    feedBackBtns[i].disabled    = true;
+                    feedBackBtns[i].style.color = "black";
+                  } else {
+                    feedBackBtns[i].disabled = false;
+                  }
+                  if(feedBackBtns[i].getAttribute("value") == data.status){
+                    feedBackBtns[i].style.borderStyle = "solid";
+                    feedBackBtns[i].style.borderColor = "gold";
+                    feedBackBtns[i].style.borderWidth = "thick";
+                  }
+                }
+                if(data.clientComments != undefined && data.clientComments != "undefined" && data.clientComments != ""){
+                  comments.value =  data.clientComments;
+                } else {
+                  comments.value =  "No comments given yet...";
+                }
+              });
+          });
+
+          feedback = "";
+          spinner1.style.display      = "block";
+          propDesignImg.style.display = "none";
+          while(propDesignImg.firstChild){
+            propDesignImg.removeChild(propDesignImg.firstChild);
+          }
+          storageRef.getDownloadURL().then(function(url){
+            spinner1.style.display      = "none";
+            propDesignImg.style.display = "block";
+            var dynamicEle = document.createElement("img");
+            dynamicEle.style.width  = "300px";
+            dynamicEle.style.height = "300px";
+            dynamicEle.style.peload = true;
+            dynamicEle.src          = url;
+            propDesignImg.appendChild(dynamicEle);
+          }).catch(e => {console.log(e.message)});
+        }
+
+        feedbackClicked(e){
+          var feedbackValue = e.currentTarget.getAttribute("value");
+          var feedBackBtns  = this.$.feedbackBtns.children;
+          // if(userType == "DESIGNER"){
+          //   reutrn;
+          // }
+          for(var i = 0; i < feedBackBtns.length; i++){
+            feedBackBtns[i].style.borderStyle = "none";  
+          }
+          e.currentTarget.style.borderStyle = "solid";
+          e.currentTarget.style.borderColor = "gold";
+          e.currentTarget.style.borderWidth = "thick";
+          feedback = e.currentTarget.getAttribute("value");
+        }
+
+        submitFeedback(){
+          var projId    = JSON.parse(localStorage.getItem('projectId'));
+          var userId    = JSON.parse(localStorage.getItem('uid'));
+          var desId     = JSON.parse(localStorage.getItem('designId'));
+          var comments  = this.$.comments.value;
+          if(feedback == ""){
+            alert("please slect one of the feedback options");
+            return;
+          }
+          if (comments != undefined && comments != "undefined" && comments != ""){
+            db.collection('users').doc(userId).collection('projects').doc(projId).collection('proposedDesigns').doc(desId).update({
+              status: feedback,
+              clientComments: comments
+            }).then(function(){
+                location.reload();
+            });  
+          } else {
+            db.collection('users').doc(userId).collection('projects').doc(projId).collection('proposedDesigns').doc(desId).update({
+              status: feedback
+            }).then(function(){
+                location.reload();
+            });
+          }
+        }
+
+        backBtn(){
+            window.history.pushState({}, null, '/project-dashboard');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+    }
+
+    window.customElements.define(MyProposedDesign.is, MyProposedDesign);
+  </script>
+</dom-module>

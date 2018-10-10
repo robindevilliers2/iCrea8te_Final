@@ -1,0 +1,198 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-divider/paper-divider.html">
+<link rel="import" href="../bower_components/iron-label/iron-label.html">
+<link rel="import" href="../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="my-project-card.html">
+
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+     <meta http-equiv="Pragma" content="no-cache"/>
+     <meta http-equiv="Expires" content="0"/>
+<dom-module id="my-profile">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+        padding: 10px;
+      }
+        
+        .mainBtn{ 
+            width: 200px; 
+            color: black;
+            font-weight: 600;
+        }
+        
+        .userInfo{
+            font-weight: 600;
+            font-family: sans-serif;
+            font-size: 26px;
+        }
+        
+        paper-spinner.multi {
+            width: 50px;
+            height: 50px;
+          --paper-spinner-layer-1-color: var(--paper-purple-500);
+          --paper-spinner-layer-2-color: var(--paper-cyan-500);
+          --paper-spinner-layer-3-color: var(--paper-blue-grey-500);
+          --paper-spinner-layer-4-color: var(--paper-amber-500);
+        }
+    
+    </style>
+      
+      <app-localstorage-document key="currUser" data="{{currUser}}"></app-localstorage-document>
+      <div style='text-align: center'>
+          <img src="../images/name.png" style="width: 175px; height:55px;">
+      </div>   
+        <div style= "text-align: center">
+             <div style= "text-align: left;">
+                <div style="float:left">
+                <iron-icon icon="icons:account-circle" style="height: 75px; width:75px; color: #337;"></iron-icon>
+                </div>
+                <div id="spinner1" style= "text-align: left;">
+                    <paper-spinner class="multi"  style="margin-top: 2%;" active></paper-spinner>
+                </div>
+                <div style="margin-top: 5%;">
+                    <br>
+                    <userName id = "userName" class="userInfo" style="font-weight: 700; font-size: 18px;">Name </userName>
+                    <userCompany id = "userCompany" class="userInfo" style="font-weight: 500; font-size: 16px;">Company</userCompany>
+                </div>
+             </div><br>
+            <h2 style="text-align: left;">My Projects</h2>
+            <hr style = "border: 0; width: 90%; color: #99c; background-color: #99c; height: 1px;">
+            <br>
+                <div id="spinner2" style= "text-align: center;">
+                    <paper-spinner class="multi" active></paper-spinner>
+                </div>
+            <table>
+                <div id = "projectsDisplay"></div>
+            </table>
+            <iron-label id = "addProjectBtn">
+                <iron-icon icon="icons:add-circle" style="height: 50px; width: 50px; color: #66E;" on-click="addProject"></iron-icon><br>
+                Add new project
+            </iron-label>
+            <iron-label id = "findProjectBtn">
+                <iron-icon icon="icons:work" style="height: 50px; width: 50px; color: #66E;" on-click="findProject"></iron-icon><br>
+                Find new project
+            </iron-label>
+
+      </div><br><br><br><br>
+
+  </template>
+
+  <script>
+      
+    class MyProfile extends Polymer.Element {
+      static get is() { return 'my-profile'; }
+        
+        static get properties() {
+        return {
+          currUser: {
+              type: String,
+              observer: '_currUserChange'
+          },
+            projectId: {
+              type: String,
+              notify: true
+          },
+            projectCategory: {
+              type: String,
+              notify: true
+          }
+        };
+      }
+        
+        ready() {
+            super.ready();
+            
+        }
+        
+        _currUserChange () {
+            if (this.currUser != null) {
+                var currUser        = this.currUser;
+                var userName        = this.$.userName;
+                var userCompany     = this.$.userCompany;
+                var projectsDisplay = this.$.projectsDisplay;
+                var spinner1        = this.$.spinner1;
+                var spinner2        = this.$.spinner2;
+                var addPBtn         = this.$.addProjectBtn;
+                var findPBtn        = this.$.findProjectBtn;
+                var projId          = "";
+                
+                userName.style.display        = 'none';
+                userCompany.style.display     = 'none';
+                projectsDisplay.style.display = 'none';
+                addPBtn.style.display         = 'none';
+                findPBtn.style.display        = 'none';
+                
+                db.collection('users').doc(currUser).get().then(function (doc) {
+                    var data = doc.data();
+                    userName.innerHTML = data.name;
+                    userCompany.innerHTML = data.company;
+                    if(data.type == "CLIENT" ){
+                        addPBtn.style.display = 'block';    
+                    } else if (data.type == "DESIGNER"){
+                        findPBtn.style.display = 'block';    
+                    }
+                }).then(function(){
+                    spinner1.style.display    = 'none';
+                    userName.style.display    = 'block';
+                    userCompany.style.display = 'block';
+                }).catch(e => {console.log(e.message)});
+
+                db.collection('users').doc(currUser).collection('projects').get().then(function (querySnap) {
+                    spinner2.style.display = 'none';
+                    projectsDisplay.style.display = 'block';
+                    if(querySnap.empty){
+                        projectsDisplay.innerHTML = "You currently dont have any projects...";
+                    }else{
+                        querySnap.forEach(function(doc){
+                            var project    = doc.data();
+                            var dynamicEle = document.createElement('my-project-card');
+                            if(project.userProject == undefined || project.userProject == "undefined" ){
+                                projId = doc.id;
+                            } else {
+                                projId = project.userProject;
+                            }
+                            dynamicEle.projectName        = project.name;
+                            dynamicEle.projectCategory    = project.category;
+                            dynamicEle.tagWords           = project.tags;
+                            dynamicEle.projectDescription = project.description;
+                            dynamicEle.testTaken          = project.testTaken;
+                            dynamicEle.userId             = project.userId;
+                            dynamicEle.id                 = projId; 
+                            
+                            projectsDisplay.appendChild(dynamicEle);
+                        });
+                    }
+                }).catch(e => {console.log(e.message)});
+            } else {
+                this.$.projectsDisplay.innerHTML = "";
+                this.$.spinner1.style.display    = 'block';
+                this.$.spinner2.style.display    = 'block';
+            }
+        }
+        
+        logOut(){
+            this.set('currUser', null);
+            firebase.auth().signOut();
+        }
+        
+        addProject(){
+            window.history.pushState({}, null, '/newproject');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+        
+        findProject(){
+            window.history.pushState({}, null, '/project-browser');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+    }
+
+    window.customElements.define(MyProfile.is, MyProfile);
+  </script>
+</dom-module>

@@ -1,0 +1,74 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+
+
+
+<dom-module id="my-design-card">
+  <template>
+    <app-localstorage-document id="designId" key="designId" data="{{designId}}"></app-localstorage-document>
+    <app-localstorage-document id="uid" key="uid" data="{{uid}}"></app-localstorage-document>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+        
+     #pageContent{
+            width: 75%;
+            margin-left: 12.5%;
+        }
+    
+    </style>
+      <div id = "dCard">
+          <td>
+              <paper-card style = 'width: 70%; padding-left: 5%; padding-right: 5%' on-click='cardClicked'>
+                  <strong style = "font-size: 22px">[[designName]] </strong> <br>
+                  <hr style = "border: 0; width: 90%; color: rgb(144, 144, 255); background-color: rgb(157, 157, 255); height: 1px;"> <br>
+                  <text>[[designDescription]]</text><br>
+              </paper-card>
+          </td>
+      </div>
+      
+      
+  </template>
+
+  <script>
+    class MyDesignCard extends Polymer.Element {
+      static get is() { return 'my-design-card'; }
+        
+        static get properties() {
+        return {
+          designName: String,
+          id: String,
+          designDescription: String,
+          designId: {
+              type: String,
+              notify: true
+          },
+          uid: {
+              type: String,
+              notify: true
+          }
+        };
+      }
+        ready(){
+            super.ready();
+        }
+        
+        cardClicked () {
+            this.designId  = this.id;
+            this.notifyPath("designId");
+            console.log(this.designId + ' Sup Bihc');
+            window.history.pushState({}, null, '/proposed-design');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+       
+    }
+
+    window.customElements.define(MyDesignCard.is, MyDesignCard);
+  </script>
+</dom-module>

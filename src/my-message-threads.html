@@ -1,0 +1,55 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-message-threads">
+  <template>
+    <style include="shared-styles">
+            paper-spinner {
+                --paper-spinner-stroke-width: 6px;
+            }
+      </style>
+      
+      <div id="threadContainer" class="w3-center" style="width: 100%;" on-tap="_loadThread">
+          <paper-card style="min-width: 350px; border-radius: 16px; margin:16px; padding: 0;">
+              <div class="card-content w3-center">
+                 [[threadName]]
+              </div>
+          </paper-card>
+      </div>
+        
+  </template>
+
+  <script>
+    class myMessageThreads extends Polymer.Element {
+      static get is() { return 'my-message-threads'; }
+        
+        static get properties() {
+                return {
+                    threadName: String,
+                    projectIdMessages: {
+                      type: String,
+                      notify: true
+                  }
+                }
+        }
+        
+        
+        ready () {
+            super.ready();
+        }
+        
+        _loadThread () {
+            localStorage.setItem("projectIdMessages", this.projectIdMessages);
+            console.log(localStorage.getItem("projectIdMessages") + " Balls");
+            localStorage.setItem("userType", this.userType);
+            localStorage.setItem("threadName", this.threadName);
+            window.history.pushState({}, null, '/project-messages');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+        
+        
+    }
+    window.customElements.define(myMessageThreads.is, myMessageThreads);
+  </script>
+</dom-module>

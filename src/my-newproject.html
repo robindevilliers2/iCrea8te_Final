@@ -1,0 +1,126 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-divider/paper-divider.html">
+<link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../bower_components/paper-input/paper-textarea.html">
+
+
+<dom-module id="my-newproject">
+  <template>
+      
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+        
+        .mainBtn{ 
+            width: 200px; 
+            color: black;
+            font-weight: 600;
+        }
+        
+        #pageContent{
+            width: 75%;
+            margin-left: 12.5%;
+        }
+    
+    </style>
+      <app-localstorage-document id="projectId" key="projectId" data="{{projectId}}"></app-localstorage-document>
+      <app-localstorage-document id="uid" key="uid" data="{{uid}}"></app-localstorage-document>
+      
+      <div style='text-align: center'>
+          <img src="../images/name.png" style="width: 175px; height:55px;">
+      </div>
+      <div id ="pageContent">
+        <h1>Add Project</h1>
+        <paper-divider class="divider-for-light-background" style="color: black"></paper-divider><br>
+
+            <div >
+                <iron-icon icon="icons:note-add" style="height: 75px; width: 75px; color: #094;"></iron-icon><br>
+            </div>
+            <form name="addProject" method="get" action="#">
+                <paper-input id="pName" label="Project Name" required auto-validate error-message="Please enter project name."></paper-input>
+                <paper-dropdown-menu id = "category" label="Project Type" >
+                    <paper-listbox slot="dropdown-content">
+                        <paper-item>Logo</paper-item>
+                        <paper-item>Application</paper-item>
+                        <paper-item>Confrence</paper-item>
+                        <paper-item>E-Learning</paper-item>
+                    </paper-listbox>
+                </paper-dropdown-menu>
+                <br>
+                <paper-textarea id="description" style= "width: 85%; text-align: left;" label = "Describe your project"></paper-textarea>
+                <br><br>
+                <paper-button class="mainBtn" style="background-color: #66E; color: white" on-click="addProject">Add Project</paper-button>
+            </form>
+        
+      </div>
+  </template>
+
+  <script>
+    class MyNewProject extends Polymer.Element {
+      static get is() { return 'my-newproject'; }    
+        static get properties() {
+        return {
+            currUser:String,
+            projectId: {
+              type: String,
+              notify: true
+          },
+            projectCategory: {
+              type: String,
+              notify: true
+          },
+            uid: {
+            type: String,
+            notify: true
+            }
+        };
+      }
+        
+        addProject(){
+            var currUser = this.currUser;
+            console.log(pCat);
+            var pName = this.$.pName.value;
+            var pCat  = this.$.category.value;
+            var pID   = this.$.projectId;
+            var pDesc = this.$.description.value;
+            
+            this.uid = currUser;
+            
+            if(pName == "" || pName == null){
+                alert('Please enter a project name');
+                return;
+            } else if( pCat == null){
+                alert('Please select a project category');
+                return;
+            } else{
+                
+                db.collection('users').doc(currUser).collection('projects').add({
+                        name: pName,
+                        category: pCat,
+                        description: pDesc,
+                        testTaken: false,
+                        userId: currUser 
+                 }).then(function(doc){
+                   pID.data = doc.id;
+                }).catch( e => alert(e.message));
+                this.projectCategory = pCat;
+                
+                window.history.pushState({}, null, '/quick-test');
+                window.dispatchEvent(new CustomEvent("location-changed"));
+            }
+        }
+        
+    }
+
+    window.customElements.define(MyNewProject.is, MyNewProject);
+  </script>
+</dom-module>

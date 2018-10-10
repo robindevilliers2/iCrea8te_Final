@@ -1,0 +1,22 @@
+{
+  "name": "Quick Design",
+  "short_name": "Quick Design",
+  "description": "We do it better. Faster.",
+  "icons": [
+    {
+      "src": "images/manifest/logo2-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "images/manifest/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#777",
+  "background_color": "#777",
+  "gcm_sender_id": "103953800507"
+}

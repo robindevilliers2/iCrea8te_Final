@@ -1,0 +1,307 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
+<link rel="import" href="../bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-scroll-effects/app-scroll-effects.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+<link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="my-icons.html">
+
+<link rel="lazy-import" href="my-main.html">
+<link rel="lazy-import" href="my-login.html">
+<link rel="lazy-import" href="my-register.html">
+<link rel="lazy-import" href="my-profile.html">
+<link rel="lazy-import" href="my-view404.html">
+<link rel="lazy-import" href="my-newproject.html">
+<link rel="lazy-import" href="my-quick-test.html">
+<link rel="lazy-import" href="my-project-dashboard.html">
+<link rel="lazy-import" href="my-proposed-design.html">
+<link rel="lazy-import" href="my-project-browser.html">
+<link rel="lazy-import" href="my-upload-design.html">
+<link rel="lazy-import" href="my-project-messages.html">
+<link rel="lazy-import" href="my-message-threads.html">
+<link rel="import" href="my-project-messages-dashboard.html">
+
+<dom-module id="my-app">
+  <template>
+    <style>
+      :host {
+        --app-primary-color: #888;
+        --app-secondary-color: white;
+
+        display: block;
+      }
+
+      app-drawer-layout:not([narrow]) [drawer-toggle] {
+        display: none;
+      }
+
+      app-header {
+        color: #fff;
+        background-color: var(--app-primary-color);
+      }
+
+      app-header paper-icon-button {
+        --paper-icon-button-ink-color: black;
+      }
+
+      .drawer-list {
+        margin: 0 20px;
+      }
+
+      .drawer-list a {
+        display: block;
+        padding: 0 16px;
+        text-decoration: none;
+        color: var(--app-secondary-color);
+        line-height: 40px;
+      }
+
+      .drawer-list a.iron-selected {
+        color: black;
+        font-weight: bold;
+      }
+        
+        app-drawer-layout:not([narrow]) [drawer-toggle] {
+            display: none;
+        }
+    </style>
+      
+      <app-localstorage-document id="currUser" key="currUser" data="{{currUser}}"></app-localstorage-document>
+      <app-localstorage-document id="projectId" key="projectId" data="{{projectId}}"></app-localstorage-document>
+
+    <app-location
+        route="{{route}}"
+        url-space-regex="^[[rootPath]]">
+    </app-location>
+
+    <app-route
+        route="{{route}}"
+        pattern="[[rootPath]]:page"
+        data="{{routeData}}"
+        tail="{{subroute}}">
+    </app-route>
+
+    <app-drawer-layout id ="appDrawer" fullbleed narrow="{{narrow}}" style="z-index: 0;">
+      <!-- Drawer content -->
+      <app-drawer id="drawer" slot="drawer" swipe-open="[[narrow]]">
+          <div style="height: 100%; width: 100%;background-color: #999; color:black">
+        <app-toolbar>Menu</app-toolbar>
+        <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
+            <a name="main" id="menuMainPage" href="[[rootPath]]main">Main Page</a>
+            <a name="profile" id="menuProfile" href="[[rootPath]]profile" on-click="loadProfile">My Profile</a>
+            <a name="logout" id = "menuLogout" href="[[rootPath]]main" on-click = "logOut">Log Out</a>
+            <a name="project-messages-dashboard" id = "projectMessagesDashboard" href="[[rootPath]]project-messages-dashboard">My Messages</a>
+        </iron-selector>
+            </div>
+      </app-drawer>
+
+      <!-- Main content -->
+      <app-header-layout reveals>
+
+        <app-header id = "header" slot="header" condenses reveals effects="waterfall">
+          <app-toolbar>
+            <paper-icon-button icon="my-icons:menu" id ="menuToggle" drawer-toggle></paper-icon-button>
+            
+            <div main-title style="padding-left: 20px; text-align: center"><img src="../images/name.png" width = "165px" height = "60px" style = "margin-top: 5px;"></div>
+          </app-toolbar>
+        </app-header>
+
+        <iron-pages
+            selected="[[page]]"
+            attr-for-selected="name"
+            fallback-selection="view404"
+            role="main">
+            <my-main curr-user="[[currUser]]" name="main"></my-main>
+            <my-login curr-user="[[currUser]]" name="login"></my-login>
+            <my-register curr-user="[[currUser]]" name="register"></my-register>
+            <my-newproject curr-user="[[currUser]]" uid="{{uid}}" project-id = "{{projectId}}" project-category="{{projectCategory}}"name="newproject"></my-newproject>
+            <my-upload-design curr-user="[[currUser]]" uid="{{uid}}" project-id = "{{projectId}}" project-category="{{projectCategory}}"name="upload-design"></my-upload-design>
+            <my-profile curr-user="[[currUser]]" uid="{{uid}}" project-id = "{{projectId}}" project-category="{{projectCategory}}" name="profile"></my-profile>
+            <my-project-browser curr-user="[[currUser]]" uid="{{uid}}" project-id = "{{projectId}}" project-category="{{projectCategory}}" name="project-browser"></my-project-browser>
+            <my-quick-test curr-user="[[currUser]]" project-id = "{{projectId}}" project-category="{{projectCategory}}" name="quick-test"></my-quick-test>
+            <my-view404 curr-user="[[currUser]]" name="view404"></my-view404>
+            <my-project-dashboard curr-user="[[currUser]]" uid="{{uid}}" project-id = "{{projectId}}" design-id = "{{designId}}" name="project-dashboard" ></my-project-dashboard>
+            <my-project-likes curr-user="[[currUser]]" uid="{{uid}}" project-id = "{{projectId}}" name="project-likes"></my-project-likes>
+            <my-project-dislikes curr-user="[[currUser]]" uid="{{uid}}" project-id = "{{projectId}}" name="project-dislikes"></my-project-dislikes>
+            <my-proposed-design curr-user="[[currUser]]" design-id = "{{designId}}" name="proposed-design" ></my-proposed-design>
+            <my-project-messages-dashboard toast="{{toast}}" toast-message="{{toastMessage}}" name="project-messages-dashboard"></my-project-messages-dashboard>
+            <my-project-messages name="project-messages"></my-project-messages>
+        </iron-pages>
+      </app-header-layout>
+    </app-drawer-layout>
+    <paper-toast text="[[toastMessage]]" id="toast"></paper-toast>
+    <app-localstorage-document id="toastEle" key="toast" data="{{toast}}">
+    </app-localstorage-document>
+    <app-localstorage-document id="toastMessage" key="toastMessage" data="{{toastMessage}}">
+    </app-localstorage-document>
+  </template>
+
+  <script>
+    class MyApp extends Polymer.Element {
+      static get is() { return 'my-app'; }
+    
+      static get properties() {
+        return {
+          page: {
+            type: String,
+            reflectToAttribute: true,
+            observer: '_pageChanged',
+          },
+          routeData: Object,
+          subroute: String,
+          // This shouldn't be neccessary, but the Analyzer isn't picking up
+          // Polymer.Element#rootPath
+          rootPath: String,
+          currUser: {
+              type: String,
+              notify: true
+          },
+            projectId: {
+              type: String,
+              notify: true
+          },
+            projectCategory: {
+              type: String,
+              notify: true
+          },
+          designId: {
+              type: String,
+              notify: true
+          },
+          toast: {
+            type: String,
+            observer: "_displayToast",
+            notify: true
+          },
+          toastMessage: {
+              type: String,
+              notify: true
+          },
+          count: {
+            type: Number,
+            value: -1
+          }
+        };
+      }
+
+      static get observers() {
+        return [
+          '_routePageChanged(routeData.page)',
+        ];
+      }
+        
+        
+        ready(){
+            super.ready();
+            var currUserElem = this.$.currUser;
+            if(localStorage.getItem("loggedIn") == false) {
+                window.history.pushState({}, null, '/main');
+                window.dispatchEvent(new CustomEvent("location-changed"));
+            } 
+            firebase.auth().onAuthStateChanged(firebaseUser => {
+                var loadedOnce = false;
+                if(firebaseUser){
+                    localStorage.setItem("loggedIn",true);
+                    var currUser = firebase.auth().currentUser.uid;
+                    currUserElem.data = currUser;
+                    var currEmail,currName,currCompany;
+                    window.history.pushState({}, null, '/profile');
+                    window.dispatchEvent(new CustomEvent("location-changed"));
+                } else {
+                    localStorage.setItem("loggedIn",false);
+                    currUser = null;
+                    window.history.pushState({}, null, '/main');
+                    window.dispatchEvent(new CustomEvent("location-changed"));
+                } 
+            });
+        }
+        
+        _displayToast () {
+            this.count++;
+            console.log("Poop");
+            if (this.count > -1) {
+                this.$.toast.open();
+            }
+        }
+        
+      _routePageChanged(page) {
+        // If no page was found in the route data, page will be an empty string.
+        // Default to 'view1' in that case.
+        this.page = page || 'main';
+
+        // Close a non-persistent drawer when the page & route are changed.
+        if (!this.$.drawer.persistent) {
+          this.$.drawer.close();
+        }
+      }
+        
+        logOut(){
+            this.$.currUser.data = null;
+            firebase.auth().signOut();
+            currUser = null;
+            return false;
+        }
+        
+        loadProfile(){
+            window.history.pushState({}, null, '/profile');
+            window.dispatchEvent(new CustomEvent("location-changed")); 
+        }
+
+      _pageChanged(page) {
+          this.$.header.style.display = 'none';
+          if(page == "main") {
+              this.$.appDrawer.forceNarrow = true;
+          } else{
+              this.$.appDrawer.forceNarrow = false;
+          }
+          
+          if(page == "register" || page == "login"){
+              this.$.menuMainPage.style.display="block";
+              this.$.menuLogout.style.display="none";
+              this.$.menuProfile.style.display="none";
+          } else{
+              this.$.menuMainPage.style.display="none";
+              this.$.menuLogout.style.display="block";
+              this.$.menuProfile.style.display="block";
+          }
+        // Load page import on demand. Show 404 page if fails
+        var resolvedPageUrl = this.resolveUrl('my-' + page + '.html');
+        Polymer.importHref(
+            resolvedPageUrl,
+            null,
+            this._showPage404.bind(this),
+            true);
+      }
+
+      _showPage404() {
+        this.page = 'view404';
+      }
+        
+        
+    }
+
+    window.customElements.define(MyApp.is, MyApp);
+  </script>
+</dom-module>

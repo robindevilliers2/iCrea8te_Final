@@ -1,0 +1,64 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-icons/hardware-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-divider/paper-divider.html">
+
+
+
+<dom-module id="my-login">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+        
+        .mainBtn{ 
+            width: 100px; 
+            color: black;
+            font-weight: 600;
+        }
+     #pageContent{
+            width: 75%;
+            margin-left: 12.5%;
+        }
+    
+    </style>
+      <div id ="pageContent">
+            <h1>Log in</h1>
+        <paper-divider class="divider-for-light-background" style="color: black"></paper-divider>
+            <div style='text-align: center'>
+                <img src="../images/name.png" style="width: 175px; height:55px;">
+            </div>      
+            <div style="text-align: center;">
+                <iron-icon icon="hardware:keyboard-tab" style="height: 75px; width: 75px; color: #094;"></iron-icon>
+            </div>
+            <form name="login" method="get" action="#">
+                <paper-input id = "email" label="Email"></paper-input><br>
+                <paper-input id = "pass" label="Password" type="password"></paper-input><br>
+                <paper-button class="mainBtn" style="background-color: #47A" on-click="login">Log in</paper-button>
+            </form>
+      </div>
+  </template>
+
+  <script>
+    class MyLogin extends Polymer.Element {
+      static get is() { return 'my-login'; }
+        
+        login(){
+            
+            var email = this.$.email.value;
+            var pass = this.$.pass.value;
+            
+            const auth = firebase.auth();
+            const res = auth.signInWithEmailAndPassword(email,pass);
+            res.catch( e => alert(e.message));
+        }
+    }
+
+    window.customElements.define(MyLogin.is, MyLogin);
+  </script>
+</dom-module>

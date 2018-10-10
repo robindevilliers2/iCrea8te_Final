@@ -1,0 +1,242 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="my-message-threads.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-project-messages-dashboard">
+  <template>
+    <style include="shared-styles">
+            paper-spinner {
+                --paper-spinner-stroke-width: 6px;
+            }
+      </style>
+      
+      <app-location
+        route="{{route}}"
+        url-space-regex="^[[rootPath]]">
+    </app-location>
+
+    <app-route
+        route="{{route}}"
+        pattern="[[rootPath]]:page"
+        data="{{routeData}}"
+        tail="{{subroute}}">
+    </app-route>
+      
+      <paper-dialog id="firstLoad" class="w3-animate-opacity" no-cancel-on-outside-click no-cancel-on-esc-key>
+          <h2>Messages</h2>
+          <br>
+          <div class="w3-center">
+              Here you can see your messages. To use messaging your need to allow us to send you notifications.
+          </div>
+          <div class="w3-center">
+              The next prompt will be to ask you for permission. Please accept this to send and receive messages.
+          </div>
+          <div class="buttons">
+            <paper-button on-tap="_messageToken" dialog-confirm autofocus>okay</paper-button>
+          </div>
+      </paper-dialog>
+      
+      <div id="messageThreadContainer" style="display: none;">
+          
+      </div>
+      <div class="w3-center" id="loader" style="display: block;">
+         <paper-spinner active class="multi" style="width: 90px;height: 90px;margin-top: 32px;"></paper-spinner>
+      </div>
+      
+        
+  </template>
+
+  <script>
+    class myProjectMessagesDashboard extends Polymer.Element {
+      static get is() { return 'my-project-messages-dashboard'; }
+        
+        static get properties() {
+                return {
+                    messageContent: String,
+                    colour: String,
+                    float: String,
+                    projectId: {
+                      type: String,
+                      notify: true
+                  }
+                }
+        }
+        
+        static get observers() {
+            return [
+              '_routePageChanged(routeData.page)',
+            ];
+          }
+        
+        
+        ready () {
+            super.ready();
+            if (localStorage.getItem("messagingPermission") == null || localStorage.getItem("messagingPermission") == undefined) {
+                this.$.firstLoad.open();
+            } else if (localStorage.getItem("messagingPermission") == "false") {
+                // No permission
+            } else {
+                this._messageToken();
+            }
+        }
+        
+        _routePageChanged(page) {
+           if(page == "project-messages-dashboard") {
+               this._loadMessageThreads();
+           }
+          }
+        
+        _loadMessageThreads() {
+            // Clean last load if there is and check for new items
+            while (this.$.messageThreadContainer.firstChild) {
+                 this.$.messageThreadContainer.removeChild(this.$.messageThreadContainer.firstChild);
+             }
+            var db = firebase.firestore();
+            db.collection("users/"+firebase.auth().currentUser.uid+"/projects").get().then(querySnapshot => {
+                querySnapshot.forEach(doc => {
+                   console.log(doc.data().name);
+                   var dynamicEle = document.createElement("my-message-threads");
+                   dynamicEle.threadName = doc.data().name;
+                   dynamicEle.projectIdMessages = doc.id;
+                   dynamicEle.userType = this.userType;
+                   this.$.messageThreadContainer.appendChild(dynamicEle);
+                });
+            }).then(e => {
+                this.$.loader.style.display = "none";
+                this.$.messageThreadContainer.style.display = "block";
+                console.log("loaded");
+            }).catch(error => {
+                console.log("there was an error getting projects");
+                console.error(error);
+                console.error(error.message);
+            });
+        }
+        //Grab user's device token and save it if it does not exist already
+        _messageToken () {
+            var messageThreads = this.messageThreads;
+            var loader = this.$.loader;
+            firebase.auth().onAuthStateChanged(firebaseUser => {
+                if(firebaseUser){
+                    firebase.messaging().getToken().then(currentToken => {
+                if (currentToken) {
+                    localStorage.setItem("messagingPermission", true);
+                    var check = false;
+                    console.log('Got FCM device token:', currentToken);
+                    var db = firebase.firestore();
+                    var user = firebase.auth().currentUser.uid;
+                    db.collection("users/"+user+"/deviceTokens").get().then(querySnapshot => {
+                        querySnapshot.forEach(doc => {
+                            console.log(doc.id, " => ", doc.data());
+                            if(doc.data().token == currentToken){
+                                check = true;
+                            }
+                        });
+                    }).then(e => {
+                        // Saving the Device Token to the datastore if there is not one saved already..
+                        if(check == false) {
+                            console.log("User token needs to be stored");
+                            db.collection("users/"+user+"/deviceTokens")
+                                .add({
+                                token: currentToken
+                            })
+                            .then(e => {
+                                console.log('Got token and stored it to database');
+                            })
+                            .catch(error => {
+                                console.log('Unsuccessful save: ');
+                                console.error(error);
+                            });
+                        } else {
+                            console.log("User token not saved to the database.");
+                        }
+                        db.collection("users").doc(user).get().then(doc => {
+                            var data = doc.data();
+                            if (data.type == "CLIENT") {
+                                this.userType = "CLIENT"
+                            } else if (data.type == "DESIGNER") {
+                                this.userType = "DESIGNER"
+                            }
+                        }).catch(error => {
+                            console.log("Error getting user data:");
+                            console.error(error.message);
+                            console.error(error);
+                        });
+                    });
+                    } else {
+                      // Need to request permissions to show notifications.
+                      console.log("We don't have permission to send notification yet");
+                      console.log('Requesting notifications permission...');
+                      firebase.messaging().requestPermission().then(e => {
+                        // Notification permission granted.
+                        localStorage.setItem("messagingPermission", true);
+                          firebase.messaging().getToken().then(currentToken => {
+                            if (currentToken) {
+                                localStorage.setItem("messagingPermission", true);
+                                var check = false;
+                                console.log('Got FCM device token:', currentToken);
+                                var db = firebase.firestore();
+                                var user = firebase.auth().currentUser.uid;
+                                db.collection("users/"+user+"/deviceTokens").get().then(querySnapshot => {
+                                    querySnapshot.forEach(doc => {
+                                        console.log(doc.id, " => ", doc.data());
+                                        if(doc.data().token == currentToken){
+                                            check = true;
+                                        }
+                                    });
+                                }).then(e => {
+                                    // Saving the Device Token to the datastore if there is not one saved already..
+                                    if(check == false) {
+                                        console.log("User token needs to be stored");
+                                        db.collection("users/"+user+"/deviceTokens")
+                                            .add({
+                                            token: currentToken
+                                        })
+                                        .then(e => {
+                                            console.log('Got token and stored it to database');
+                                        })
+                                        .catch(error => {
+                                            console.log('Unsuccessful save: ');
+                                            console.error(error);
+                                        });
+                                    } else {
+                                        console.log("User token not saved to the database.");
+                                    }
+                                    db.collection("users").doc(user).get().then(doc => {
+                                        var data = doc.data();
+                                        if (data.type == "CLIENT") {
+                                            this.userType = "CLIENT"
+                                        } else if (data.type == "DESIGNER") {
+                                            this.userType = "DESIGNER"
+                                        }
+                                    }).catch(error => {
+                                        console.log("Error getting user data:");
+                                        console.error(error.message);
+                                        console.error(error);
+                                    });
+                                });
+                            }
+                          }).catch(error => {
+                            console.error('Unable to get messaging token.', error);
+                          });
+                      }).catch(error => {
+                        localStorage.setItem("messagingPermission", false);
+                        console.error('Unable to get permission to notify.', error);
+                      });
+                    }
+                  }).catch(error => {
+                    console.error('Unable to get messaging token.', error);
+                  });
+                } 
+            });
+            
+        }
+        
+        
+    }
+    window.customElements.define(myProjectMessagesDashboard.is, myProjectMessagesDashboard);
+  </script>
+</dom-module>

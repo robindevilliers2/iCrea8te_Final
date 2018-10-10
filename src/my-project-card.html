@@ -1,0 +1,79 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+
+
+
+<dom-module id="my-project-card">
+  <template>
+    <app-localstorage-document id="projectId" key="projectId" data="{{projectId}}"></app-localstorage-document>
+    <app-localstorage-document id="uid" key="uid" data="{{uid}}"></app-localstorage-document>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+        
+     #pageContent{
+            width: 75%;
+            margin-left: 12.5%;
+        }
+    
+    </style>
+      <div id = "pCard">
+          <td>
+              <paper-card style = 'width: 70%; padding-left: 5%; padding-right: 5%' on-click='cardClicked'>
+                  <strong style = "font-size: 22px">[[projectName]] </strong> <br>
+                  <text> [[projectCategory]] </text><br>
+                  <hr style = "border: 0; width: 90%; color: #aac; background-color: #aac; height: 1px;"> <br>
+                  <text>[[projectDescription]]</text><br>
+                  <strong style = "font-size: 18px">[[tagWords]]</strong>
+              </paper-card>
+          </td>
+      </div>
+      
+      
+  </template>
+
+  <script>
+    class MyProjectCard extends Polymer.Element {
+      static get is() { return 'my-project-card'; }
+        
+        static get properties() {
+            return {
+            projectName: String,
+            projectCategory: String,
+            tagWords: String,
+            testTaken: Boolean,
+            id: String,
+            projectDescription: String,
+            userId: String,
+            projectId: {
+                type: String,
+                notify: true
+            },
+            uid: {
+                type: String,
+                notify: true
+            }
+            };
+        }
+        ready(){
+            super.ready();
+        }
+        
+        cardClicked () {
+            this.projectId = this.id;
+            this.uid       = this.userId;
+            window.history.pushState({}, null, '/project-dashboard');
+            window.dispatchEvent(new CustomEvent("location-changed"));
+        }
+       
+    }
+
+    window.customElements.define(MyProjectCard.is, MyProjectCard);
+  </script>
+</dom-module>

@@ -1,0 +1,374 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="my-message.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-project-messages">
+  <template>
+    <style include="shared-styles">
+            paper-spinner {
+                --paper-spinner-stroke-width: 6px;
+            }
+      </style>
+      
+      <app-location
+        route="{{route}}"
+        url-space-regex="^[[rootPath]]">
+    </app-location>
+
+    <app-route
+        route="{{route}}"
+        pattern="[[rootPath]]:page"
+        data="{{routeData}}"
+        tail="{{subroute}}">
+    </app-route>
+      
+      <paper-dialog id="firstLoad" class="w3-animate-opacity" no-cancel-on-outside-click no-cancel-on-esc-key>
+          <h2>Messages</h2>
+          <br>
+          <div class="w3-center">
+              Here you can see your messages. To use messaging your need to allow us to send you notifications.
+          </div>
+          <div class="w3-center">
+              The next prompt will be to ask you for permission. Please accept this to send and receive messages.
+          </div>
+          <div class="buttons">
+            <paper-button on-tap="_messageToken" dialog-confirm autofocus>okay</paper-button>
+          </div>
+      </paper-dialog>
+      
+      
+      <div class="w3-center" style="position: fixed; bottom: 0;">
+        <paper-card id="messageContainer">
+          <div class="card-content">
+            <div class="cafe-header">
+              <paper-textarea id="messageText"></paper-textarea>
+              <paper-button id="sendBut" on-tap="_sendMessage" class="w3-blue" style="float: right; margin-bottom: 8px;">send</paper-button>
+            </div>
+          </div>
+            
+        </paper-card>
+      </div>
+      
+      <div class="w3-center">
+            <h3 id = "projectName" style = "padding-top:2%"></h3>
+          <my-message id="emptyMessages" message-content="No mesages yet" float="none" colour="#4caf50"></my-message>
+      </div>
+      
+      <div id="messages">
+      </div>
+        
+  </template>
+
+  <script>
+    class MyProjectMessges extends Polymer.Element {
+      static get is() { return 'my-project-messages'; }
+        
+        static get properties() {
+                return {
+                    ID: String,
+                    restaurant: String,
+                    location: {
+                        type: Array,
+                        value: []
+                    },
+                    message: String,
+                    type: String,
+                    visible: Boolean,
+                    currUser: String,
+                    userType: String,
+                    checkNum: {
+                        type: Number,
+                        value: 0
+                    },
+                    projectName: {
+                        type:String,
+                        notify:true
+                    }
+                }
+        }
+        
+        static get observers() {
+            return [
+              '_routePageChanged(routeData.page)',
+            ];
+          }
+        
+        //Assigned t0 => designer 7ZsFRwLlvlQ89RkfNDdZH1jEj052
+        //Client made project is the current user.
+        
+        
+        
+        ready () {
+            // TODO: Key will be used to create the div for the message. then when
+            // adding new ones you can always use the key to make sure you not adding the same message again.
+            super.ready();
+            var  projectName = this.$.projectName;
+            projectName.innerHTML = localStorage.getItem("threadName");
+            this.parentElement.parentElement.parentElement.childNodes[7].parentElement.resetLayout();
+            // Clean last load if there is and check for new items
+            while (this.$.messages.firstChild) {
+                 this.$.messages.removeChild(this.$.messages.firstChild);
+             }
+            if(screen.width > 640) {
+                var newWidth = screen.width - 256;
+                this.$.messageContainer.style.width = newWidth + "px";
+            } else {
+                this.$.messageContainer.style.width = "100vw";
+            }
+            window.addEventListener("resize", e => {
+                if(screen.width > 640) {
+                    var newWidth = screen.width - 256;
+                    this.$.messageContainer.style.width = newWidth + "px";
+                } else {
+                    this.$.messageContainer.style.width = "100vw";
+                }
+            });
+            
+//            if (localStorage.getItem("messagingPermission") == null || localStorage.getItem("messagingPermission") == undefined) {
+//                this.$.firstLoad.open();
+//            } else if (localStorage.getItem("messagingPermission") == "false") {
+//                // No permission
+//            } else {
+//                this._messageToken();
+//            }
+            this.$.messageText.onkeypress = (e) => {
+                if(e.keyCode === 13){
+                    e.preventDefault(); // Ensure it is only this code that runs
+                    this.$.sendBut.click();
+                }
+            }
+        }
+        
+        _routePageChanged(page) {
+               if(page == "project-messages") {
+                   console.log("loaded page");
+                   if (this.checkNum != 1){
+                       this.$.emptyMessages.style.display = "block";
+                       this._loadMessages();
+                       console.log("actual loaded page");
+                   }
+                   this.checkNum++;
+               }
+          }
+        
+        //Send message to current recipient
+        _sendMessage () {
+            this.$.emptyMessages.style.display = "none";
+            var messageCount = localStorage.getItem("messageCount");
+            var db = firebase.firestore();
+            var user = firebase.auth().currentUser.uid;
+            var message = this.$.messageText.value;
+            this.messageCount++;
+            var messageCount = this.messageCount;
+            var sendTo = this.sendTo;
+            var projectIdMessages = localStorage.getItem("projectIdMessages");
+            if(this.userType == "DESIGNER") {
+                var desUseId = this.desUseId;
+                var desProId = this.desProId;
+                db.collection("users/"+desUseId+"/projects/"+desProId+"/messagesProject").add({
+                    message: message,
+                    user: user,
+                    number: messageCount
+                }).then(docRef => {
+                    this.$.messageText.value = "";
+                    var dynamicElem = document.createElement("my-message");
+                    dynamicElem.messageContent = message;
+                    dynamicElem.float = "right";
+                    dynamicElem.colour = "#cfd8dc";
+                    this.$.messages.appendChild(dynamicElem);
+                }).catch(error => {
+                    console.log("There was an error:");
+                    console.error(error);
+                    console.error(error.message);
+                });
+            } else {
+                db.collection("users/"+user+"/projects/"+projectIdMessages+"/messagesProject")
+                .add({
+                    message: message,
+                    user: user,
+                    number: messageCount
+                }).then(docRef => {
+                    this.$.messageText.value = "";
+                    var dynamicElem = document.createElement("my-message");
+                    dynamicElem.messageContent = message;
+                    dynamicElem.float = "right";
+                    dynamicElem.colour = "#cfd8dc";
+                    this.$.messages.appendChild(dynamicElem);
+                }).catch(error => {
+                    console.log("There was an error:");
+                    console.error(error);
+                    console.error(error.message);
+                });
+            }
+        }
+        
+        //Listen to new messages
+        _listenForNewMessages () {
+            var db = firebase.firestore();
+            var user = firebase.auth().currentUser.uid;
+            var projectIdMessages = localStorage.getItem("projectIdMessages");
+            var messages = this.$.messages;
+            if(this.userType == "DESIGNER") {
+                var desUseId = this.desUseId;
+                var desProId = this.desProId;
+                var messageCount = this.messageCount;
+                db.collection("users/"+desUseId+"/projects/"+desProId+"/messagesProject").where("number", ">", messageCount)
+                .onSnapshot(querySnapshot => {
+                    
+                    
+                    querySnapshot.docChanges().forEach(change => {
+                        if (change.type === "added") {
+                            this.$.emptyMessages.style.display = "none";
+                            var data = change.doc.data();
+                            console.log("data");
+                            console.log(data);
+                            console.log(messageCount);
+                            if (data.user != firebase.auth().currentUser.uid) {
+                                var dynamicElem = document.createElement("my-message");
+                                dynamicElem.messageContent = data.message;
+                                dynamicElem.float = "left";
+                                dynamicElem.colour = "#03a9f4";
+                                messages.appendChild(dynamicElem);
+                                this.messageCount++;
+                            }
+                        }
+                    });
+                });
+            } else {
+                var assignedTo = this.assignedTo;
+                var messageCount = this.messageCount;
+                db.collection("users/"+user+"/projects/"+projectIdMessages+"/messagesProject").where("number", ">", messageCount)
+                .onSnapshot(querySnapshot => {
+                    
+                    
+                    querySnapshot.docChanges().forEach(change => {
+                        if (change.type === "added") {
+                            this.$.emptyMessages.style.display = "none";
+                            var data = change.doc.data();
+                            if (data.user != firebase.auth().currentUser.uid) {
+                                var dynamicElem = document.createElement("my-message");
+                                dynamicElem.messageContent = data.message;
+                                dynamicElem.float = "left";
+                                dynamicElem.colour = "#03a9f4";
+                                messages.appendChild(dynamicElem);
+                                this.messageCount++;
+                            }
+                        }
+                    });
+                });
+            }
+            
+        }
+        
+        //Load messages first time log in.
+        _loadMessages () {
+            console.log("messages loading");
+            while (this.$.messages.firstChild) {
+                 this.$.messages.removeChild(this.$.messages.firstChild);
+             }
+            var db = firebase.firestore();
+            var user = firebase.auth().currentUser.uid;
+            var messages = this.$.messages;
+            var projectIdMessages = localStorage.getItem("projectIdMessages");
+            this.userType = localStorage.getItem("userType");
+            var highest = 0;
+            if(this.userType == "DESIGNER") {
+                console.log("designer");
+                db.collection("users/"+user+"/projects/").doc(projectIdMessages).get().then(doc => {
+                    var data = doc.data();
+                    this.desUseId = data.userId;
+                    this.desProId = data.userProject;
+                    }).then(e => {
+                        var desUseId = this.desUseId;
+                        var desProId = this.desProId;
+                        console.log("desUseId");
+                        console.log(desUseId);
+                        console.log("desProId");
+                        console.log(desProId);
+                    db.collection("users/"+desUseId+"/projects/"+desProId+"/messagesProject")
+                        .orderBy("number").get().then(querySnapshot => {
+                        if (querySnapshot.empty) {
+                            console.log("Document data no there");
+                        } else {
+                            this.$.emptyMessages.style.display = "none";
+                        }
+                        querySnapshot.forEach(doc => {
+                            var data = doc.data();
+                            if (data.user == firebase.auth().currentUser.uid) {
+                                    var dynamicElem = document.createElement("my-message");
+                                    dynamicElem.messageContent = data.message;
+                                    dynamicElem.float = "right";
+                                    dynamicElem.colour = "#cfd8dc";
+                                    this.$.messages.appendChild(dynamicElem);
+                                } else {
+                                    var dynamicElem = document.createElement("my-message");
+                                    dynamicElem.messageContent = data.message;
+                                    dynamicElem.float = "left";
+                                    dynamicElem.colour = "#03a9f4";
+                                    this.$.messages.appendChild(dynamicElem);
+                                }
+                            if (data.number >= highest) {
+                                highest = data.number;
+                            }
+                        });
+                    }).then(e => {
+                        this.messageCount = highest;
+                        this._listenForNewMessages();
+                    }).catch(error => {
+                        console.log("Error getting messages:");
+                        console.error(error);
+                        console.error(error.message);
+                    });
+                });
+            } else { db.collection("users/"+user+"/projects/"+projectIdMessages+"/messagesProject").orderBy("number").get().then(querySnapshot => {
+                    if (querySnapshot.empty) {
+                        console.log("Document data no there");
+                    } else {
+                        this.$.emptyMessages.style.display = "none";
+                    }
+                    querySnapshot.forEach(doc => {
+                        var data = doc.data();
+                        if (data.user == firebase.auth().currentUser.uid) {
+                                var dynamicElem = document.createElement("my-message");
+                                dynamicElem.messageContent = data.message;
+                                dynamicElem.float = "right";
+                                dynamicElem.colour = "#cfd8dc";
+                                this.$.messages.appendChild(dynamicElem);
+                            } else {
+                                var dynamicElem = document.createElement("my-message");
+                                dynamicElem.messageContent = data.message;
+                                dynamicElem.float = "left";
+                                dynamicElem.colour = "#03a9f4";
+                                this.$.messages.appendChild(dynamicElem);
+                            }
+                        if (data.number >= highest) {
+                            highest = data.number;
+                        }
+                    });
+                }).then(e => {
+                this.messageCount = highest;
+                    db.collection("users/"+user+"/projects/").doc(projectIdMessages).get().then(doc => {
+                        var data = doc.data();
+                        this.assignedTo = data.assignedTo;
+                    }).then(e => {
+                        this._listenForNewMessages();
+                    });
+                }).catch(error => {
+                    console.log("Error getting messages:");
+                    console.error(error);
+                    console.error(error.message);
+                });
+            }
+        }
+        
+        
+    }
+    window.customElements.define(MyProjectMessges.is, MyProjectMessges);
+  </script>
+</dom-module>

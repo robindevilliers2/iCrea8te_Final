@@ -1,0 +1,321 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/yo-file-uploader/yo-file-uploader.html">
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../bower_components/neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../bower_components/neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-upload-design">
+    
+    <template>
+        <style include="shared-styles">
+            :host {
+              display: block;
+      
+              padding: 10px;
+            }
+              
+              .mainBtn{ 
+                  width: 200px; 
+                  color: black;
+                  font-weight: 600;
+              }
+              
+              #pageContent{
+                  width: 75%;
+                  margin-left: 12.5%;
+              }
+          
+          </style>
+            <app-localstorage-document id="projectId" key="projectId" data="{{projectId}}"></app-localstorage-document>
+            <app-localstorage-document id="uid" key="uid" data="{{uid}}"></app-localstorage-document>
+            <vaadin-upload></vaadin-upload>
+            <div style='text-align: center'>
+                <img src="../images/name.png" style="width: 175px; height:55px;">
+            </div>
+            <div id ="pageContent">
+              <h1>Add Design</h1>
+              <paper-divider class="divider-for-light-background" style="color: black"></paper-divider><br>
+      
+                  <div >
+                      <iron-icon icon="icons:note-add" style="height: 75px; width: 75px; color: rgb(84, 0, 153);"></iron-icon><br>
+                  </div>
+                  <form name="addDesign" method="get" action="#">
+                      <paper-input id="dName" label="Design Name" required auto-validate error-message="Please enter design name."></paper-input>
+                      <br>
+                      <yo-file-uploader style="margin: 16px;" id="uploader"></yo-file-uploader>
+                      <div style="width: 100%;">
+                          <div class="w3-margin w3-center">
+                              <paper-progress id="uploadProgress" class="w3-blue" style="width: 95%;"></paper-progress>
+                              <div id="uploadString" class="w3-padding" style="display: none;">
+                                  <div class="w3-medium">Uploading<span class="w3-animate-fading">...</span></div>
+                                  <div id="percentage" class="w3-medium w3-green"></div>
+                              </div>
+                          </div>
+                      </div>
+                      <paper-textarea id="description" style= "width: 85%; text-align: left;" label = "Describe the design"></paper-textarea>
+                      <br><br>
+                      <paper-button class="mainBtn" style="background-color: #66E; color: white" on-tap="_putfiles">Add Design</paper-button>
+                  </form>
+              
+            </div>
+        
+        <app-localstorage-document id="toast" key="toast" data="{{toast}}">
+        </app-localstorage-document>
+        <app-localstorage-document id="toastMessage" key="toastMessage" data="{{toastMessage}}">
+        </app-localstorage-document>
+        
+    </template>
+
+  <script>
+    var designId = "";
+
+    class UploadDesign extends Polymer.Element {
+        static get is() { return 'my-upload-design'; }
+        
+        static get properties () {
+            return {
+                noOfPics: {
+                    type: Number,
+                    value: 0
+                },
+                toast: {
+                    notify: true,
+                    type: String
+                },
+                toastMessage: {
+                    type: String,
+                    notify: true
+                }
+            }
+        }
+        
+        ready () {
+            super.ready();
+            if(JSON.parse(localStorage.getItem('projectId')) == null || localStorage.getItem('projectId') == undefined) {
+                console.error("Serious error happend!!!!!!!!!!!!!");
+                window.history.pushState({}, null, '/my-profile');
+                window.dispatchEvent(new CustomEvent('location-changed'));
+            }
+        }
+        
+        _putfiles () {
+            var files = this.$.uploader.files;
+            var uploader = this.$.uploader;
+            var uploadProgress = this.$.uploadProgress;
+            var designName = this.$.dName.value;
+            var designDescription = this.$.description.value;
+            var toast = this.$.toast;
+            var toastMessage = this.$.toastMessage;
+            var percentageShow = this.$.percentage;
+            var filesLength = files.length;
+            var projectId = JSON.parse(localStorage.getItem('projectId'));
+            var clientId  = JSON.parse(localStorage.getItem('uid'));
+            var count = 0;
+            var filenameCount = 0;
+            var noOfPics = this.noOfPics;
+            var dataArray = JSON.parse(localStorage.getItem('restaurantManagerDataArray'));
+            var id = this.restId;
+            this.$.uploadString.style.display = "block";
+            var picElem = this.$.showAssests;
+            if (uploader.files <= 0) {
+                this.toastMessage = "No pictures selected";
+                this.toast = "String";
+                this.toast = null;
+                return;
+            }
+
+            function getBase64(file) {
+              return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve({reader: reader.result, type: file.type});
+                reader.onerror = error => reject(error);
+              });
+            }
+            
+            //Handle waiting to upload each file using promise
+            function uploadImageAsPromise (imageFile, fileType) {
+                return new Promise(function (resolve, reject) {
+                    filenameCount++;
+                    var id = JSON.parse(localStorage.getItem('restaurantManagerId'));
+                    var projectId = JSON.parse(localStorage.getItem('projectId'));
+                    var storageRef = firebase.storage().ref().child("projects/"+projectId+"/"+ designId);
+                    console.log(designId + " second");
+                    //Upload file
+                    var metadata = {
+                      contentType: fileType
+                    };
+                    var task = storageRef.putString(imageFile, 'data_url', metadata);
+                    //Update progress bar
+                    task.on('state_changed',
+                        function progress(snapshot){
+                            var percentage = ((snapshot.bytesTransferred / snapshot.totalBytes * 100)/filesLength)*(count+1);
+                            uploadProgress.value = percentage;
+                            percentageShow.innerHTML = percentage+"%";
+                        },
+                        function error(err){
+                            console.error(err)
+                        },
+                        function complete(){
+                            count++;
+                            var downloadURL = task.snapshot.downloadURL;
+                            if (count == filesLength) {
+                                toast.data = "yes";
+                                toast.data = null;
+                                toastMessage.data = "Upload Finished!";
+                                percentageShow.innerHTML += " Done!"
+                                uploader.files = [];
+                                var db = firebase.firestore();
+                                db.collection("countries/"+dataArray).doc(id).update({
+                                    noOfPics: noOfPics + filesLength
+                                }).catch(error => {
+                                    console.error("Error updating document: ", error);
+                                });
+                            }
+                        }
+                    );
+                });
+            }
+
+            db.collection('users').doc(clientId).collection('projects').doc(projectId).collection('proposedDesigns').add({
+                name: designName,
+                description: designDescription,
+                designerId: firebase.auth().currentUser.uid 
+            }).then(function(doc){
+                designId = doc.id;
+                //Putting base64 and upload together
+                for (var a = 0; a < filesLength; a++) {
+                    getBase64(files[a]).then(data => {
+                        uploadImageAsPromise(data.reader, data.type.toString());
+                    });
+                }                
+            }).catch( e => alert(e.message));
+        }
+        
+        _updateFiles (filenameCount) {
+            var id = JSON.parse(localStorage.getItem('restaurantManagerId'));
+            var dataArray = JSON.parse(localStorage.getItem('restaurantManagerDataArray'));
+            var picElem = this.$.showAssests;
+                for(var a = 1; a < filenameCount + 1; a++) {
+                    promiseReturn(a);
+                }
+                
+                function promiseReturn (num) {
+                    return new Promise(function (resolve, reject) {
+                        var storageRef = firebase.storage().ref().child("countries/"+dataArray+id+"/"+num);
+                        // Get the download URL
+                        storageRef.getDownloadURL().then(function(url) {
+                          // Insert url into an <img> tag to "download"
+                            var dynamicElem = document.createElement("iron-image");
+                            dynamicElem.style.width = "200px";
+                            dynamicElem.style.height = "200px";
+                            dynamicElem.style.backgroundColor = "lightgray";
+                            dynamicElem.sizing = "cover";
+                            dynamicElem.preload = true;
+                            dynamicElem.fade = true;
+                            dynamicElem.src = url;
+                            picElem.appendChild(dynamicElem);
+                            
+                            
+                        }).catch(function(error) {
+                          // A full list of error codes is available at
+                          // https://firebase.google.com/docs/storage/web/handle-errors
+                          switch (error.code) {
+                            case 'storage/object_not_found':
+                              // File doesn't exist
+                              break;
+                            case 'storage/unauthorized':
+                              // User doesn't have permission to access the object
+                              break;
+                            case 'storage/canceled':
+                              // User canceled the upload
+                              break;
+                            case 'storage/unknown':
+                              // Unknown error occurred, inspect the server response
+                              break;
+                          }
+                        });
+                    });
+                }
+                
+        }
+    }
+    /* ---------------------------------------------------------- 
+    *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * **
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * **
+    * 
+    * *
+    * **
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * *
+    * ----------------------------------------------------------------- */
+    window.customElements.define(UploadDesign.is, UploadDesign);
+      
+  </script>
+</dom-module>

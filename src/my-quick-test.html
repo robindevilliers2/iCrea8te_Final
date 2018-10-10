@@ -1,0 +1,190 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-divider/paper-divider.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+
+
+
+<dom-module id="my-quick-test">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+        
+        .mainBtn{ 
+            width: 100px; 
+            color: black;
+            font-weight: 600;
+        }
+        
+        .testFrame{
+            width:70vw;
+            padding-top: 5%;
+            padding-bottom: 5%;
+        }
+        
+        .testIcon{
+            width: 40px;
+            height: 40px;
+            color: white;
+            border-radius: 100px;
+            padding: 5px;
+        }
+    </style>
+    <app-localstorage-document id="projectId" key="projectId" data="{{projectId}}"></app-localstorage-document>
+
+      <div style="text-align: center">
+          
+      <div style='text-align: center'>
+          <img src="../images/name.png" style="width: 175px; height:55px;">
+      </div>
+          <h1>Take our quick test</h1>
+          <h4>This will help us determine what you like!</h4>
+          <paper-card class = "testFrame" style= "width:50%; height:50%; margin: 0px">
+              
+              <div id = "imageHolder"><img id = "displayImg" style="width:50%;" > </div>
+              <div id = "ratingButtons">
+                  <table style="width:100%">
+                    <tr>
+                        <td style="width:50%">
+                            <iron-icon class = "testIcon" icon="icons:clear" style="; background-color: red; height: 75px; width: 75px;" on-click="dislikedImage"></iron-icon>
+                        </td>
+                        <td style="width:50%">
+                            <iron-icon class = "testIcon" icon="icons:check" style="background-color: green; height: 75px; width: 75px;" on-click="likedImage"></iron-icon>
+                        </td> 
+                    </tr>
+                  </table>              
+              </div>
+          </paper-card>
+      </div>
+  </template>
+
+  <script>
+      var currImg  = 0;
+      var imgArray = null;
+      var modern   = 0;
+      var punk     = 0;
+      var retro    = 0;
+      var classic  = 0;
+      var abstract = 0;
+      
+      function snapshotToArray(snapshot) {
+            var returnArr = [];
+
+            snapshot.forEach(function(childSnapshot) {
+                var item = childSnapshot.data();
+                item.key = childSnapshot.id;
+
+                returnArr.push(item);
+            });
+
+            return returnArr;
+        };
+      
+      function getNextImage(element, project){
+            currImg++;
+           if(currImg == imgArray.length){
+                alert("you have completed the test!");
+               db.collection('users').doc(firebase.auth().currentUser.uid).collection('projects').doc(project).update({
+                   testTaken: true
+               });
+                window.history.pushState({}, null, '/project-dashboard');
+                window.dispatchEvent(new CustomEvent("location-changed"));
+            }else{
+                element.src = "../images/quickTest/" + imgArray[currImg % imgArray.length].path;
+            }
+        }
+      
+    class MyQuickTest extends Polymer.Element {
+      static get is() { return 'my-quick-test'; }
+        
+        
+        static get properties() {
+        return {
+            currUser:String,
+            projectId: {
+              type: String,
+              notify: true,
+              observer: '_newProject'
+          },
+            projectCategory: {
+              type: String,
+              notify: true
+          }            
+        };
+      }
+        
+        ready(){
+            super.ready();
+        }
+        
+        
+        likedImage(){
+            
+            var pId     = this.projectId;
+            var dispImg = this.$.displayImg;
+            
+            db.collection('testImages').where("path","==",imgArray[currImg % imgArray.length].path).get().then(function (querySnap) {
+                if(querySnap.empty){
+                    console.log("could not retrieve image " + imgArray[currImg % imgArray.length].path )
+                }else{
+                    console.log(imgArray[currImg % imgArray.length].modern + imgArray[currImg % imgArray.length].path );
+                    modern   = modern   + imgArray[(currImg % imgArray.length) - 1].modern;
+                    retro    = retro    + imgArray[(currImg % imgArray.length) - 1].retro;
+                    classic  = classic  + imgArray[(currImg % imgArray.length) - 1].classic;
+                    abstract = abstract + imgArray[(currImg % imgArray.length) - 1].abstract;
+                    punk     = punk     + imgArray[(currImg % imgArray.length) - 1].punk;
+                    
+                    console.log(modern + retro + classic + abstract + punk );
+                    
+                    db.collection('users').doc(firebase.auth().currentUser.uid).collection('projects').doc(pId).update({
+                        modern      : modern,
+                        retro       : retro,
+                        classic     : classic,   
+                        abstract    : abstract,
+                        punk        : punk               
+                    });
+                }            
+            }).catch(e => {console.log(e.message)});
+            db.collection('users').doc(firebase.auth().currentUser.uid).collection('projects').doc(this.projectId).collection('likes').add({
+                path        : imgArray[currImg % imgArray.length].path              
+            });
+            
+            getNextImage(dispImg, pId); 
+        }
+        
+        dislikedImage(){
+        db.collection('users').doc(firebase.auth().currentUser.uid).collection('projects').doc(this.projectId).collection('dislikes').add({
+                path: imgArray[currImg % imgArray.length].path
+            });
+            getNextImage(this.$.displayImg, this.projectId);
+        }
+        
+       
+        
+        _newProject(){
+            var dispImg = this.$.displayImg
+            var imgHold = this.$.imageHolder;
+            console.log(this.projectId + " " + this.projectCategory);
+            db.collection('testImages').where("imageCategory","==",this.projectCategory).get().then(function (querySnap) {
+                if(querySnap.empty){
+                    imgHold.innerHTML="You currently don't have any test images...";
+                }else{                
+                    imgArray = snapshotToArray(querySnap);
+                    dispImg.src = "../images/quickTest/" + imgArray[currImg % imgArray.length].path;
+                }            
+            }).catch(e => {console.log(e.message)});
+            console.log("here");
+        }
+        
+    }
+
+    window.customElements.define(MyQuickTest.is, MyQuickTest);
+  </script>
+</dom-module>

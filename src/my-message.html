@@ -1,0 +1,66 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="my-message">
+  <template>
+    <style include="shared-styles">
+            paper-spinner {
+                --paper-spinner-stroke-width: 6px;
+            }
+      </style>
+      
+      <div id="messageContainer" style="width: 100%; float: [[float]];">
+          <paper-card style="max-width: 650px; width: 50%; border-radius: 16px; background-color: [[colour]];float: [[float]]; margin:16px; padding: 0;">
+              <div class="card-content w3-center">
+                 [[messageContent]]
+              </div>
+          </paper-card>
+      </div>
+      <br>
+      <br>
+      <br>
+        
+  </template>
+
+  <script>
+    class MyMessage extends Polymer.Element {
+      static get is() { return 'my-message'; }
+        
+        static get properties() {
+                return {
+                    messageContent: String,
+                    colour: String,
+                    float: String
+                }
+        }
+        
+        
+        ready () {
+            super.ready();
+            if(this.messageContent == undefined) {
+                this.colour = "#03a9f4";
+                this.messageContent = "This will be some message";
+                this.float = "right";
+            }
+            if(screen.width > 1619) {
+                var newWidth = screen.width - 256;
+                this.$.messageContainer.style.minWidth = newWidth + "px";
+            } else {
+                this.$.messageContainer.style.minWidth = "100%";
+            }
+            window.addEventListener("resize", e => {
+                if(screen.width > 1619) {
+                    var newWidth = screen.width - 256;
+                    this.$.messageContainer.style.minWidth = newWidth + "px";
+                } else {
+                    this.$.messageContainer.style.minWidth = "100%";
+                }
+            });
+        }
+        
+        
+    }
+    window.customElements.define(MyMessage.is, MyMessage);
+  </script>
+</dom-module>

@@ -1,0 +1,173 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-divider/paper-divider.html">
+<link rel="import" href="../bower_components/iron-label/iron-label.html">
+<link rel="import" href="../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="my-project-card.html">
+
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+
+<dom-module id="my-project-browser">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+        padding: 10px;
+      }
+        
+        .mainBtn{ 
+            width: 150px;
+            width: 30px;
+            color: black;
+            font-weight: 600;
+        }
+        
+        .userInfo{
+            font-weight: 600;
+            font-family: sans-serif;
+            font-size: 26px;
+        }
+        
+        paper-spinner.multi {
+            width: 50px;
+            height: 50px;
+          --paper-spinner-layer-1-color: var(--paper-purple-500);
+          --paper-spinner-layer-2-color: var(--paper-cyan-500);
+          --paper-spinner-layer-3-color: var(--paper-blue-grey-500);
+          --paper-spinner-layer-4-color: var(--paper-amber-500);
+        }
+    
+    </style>
+      
+      <app-localstorage-document key="currUser" data="{{currUser}}"></app-localstorage-document>
+      <div style='text-align: center'>
+          <img src="../images/name.png" style="width: 175px; height:55px;">
+      </div>
+      <div style = "width: 100%; margin: 0 auto;">
+          <div style = "text-align: center">
+              <h2  style = "text-align: left">Choose a project to work on.</h2>
+              <hr style = "border: 0; width: 90%; color: #99c; background-color: #99c; height: 1px;">
+              <h3>Search the projects by style to fit your design style.</h3>
+              <paper-dropdown-menu id = "category" label="Project Style" >
+                  <paper-listbox slot="dropdown-content">
+                      <paper-item>All</paper-item>
+                      <paper-item>Modern</paper-item>
+                      <paper-item>Classic</paper-item>
+                      <paper-item>Retro</paper-item>
+                      <paper-item>Punk</paper-item>
+                      <paper-item>Abstract</paper-item>
+                  </paper-listbox>
+              </paper-dropdown-menu>
+              <paper-button class="mainBtn" style="background-color: #47A" on-click="searchProjects">Search</paper-button><br><br>
+              <div style = "width:100%;  margin: 0 auto;">
+                  <div id="spinner1" style= "text-align: center; display: none">
+                    <paper-spinner class="multi"  style="margin-top: 2%;" active></paper-spinner>
+                  </div>
+                  <div id = "projectsDisplay"></div>              
+              </div>
+          </div>
+      </div>
+  </template>
+
+  <script>
+      
+    class MyProjectBrowser extends Polymer.Element {
+      static get is() { return 'my-project-browser'; }
+        
+        static get properties() {
+        return {
+          currUser: {
+              type: String,
+              observer: '_currUserChange'
+          },
+            projectId: {
+              type: String,
+              notify: true
+          },
+            projectCategory: {
+              type: String,
+              notify: true
+          }
+        };
+      }
+        
+        ready() {
+            super.ready();
+            if (this.currUser != null) {
+                var spinner1 = this.$.spinner1;            
+                spinner1.style.display = 'none';
+            } else {
+                
+            }
+        }
+        
+        _currUserChange () {
+            
+        }
+        
+        logOut(){
+            this.set('currUser', null);
+            firebase.auth().signOut();
+        }
+        
+        searchProjects(){
+            var spinner1 = this.$.spinner1;
+            var pDisplay = this.$.projectsDisplay;
+            var category = this.$.category.value;
+            var i        = 0;
+            pDisplay.innerHTML = "";
+                        
+            spinner1.style.display = 'block';
+            pDisplay.style.display = 'none';
+            
+            if(category == undefined || category == "undefined" ){
+                category = "ALL";
+            } else {
+                category = category.toUpperCase();
+            }
+            
+            db.collection('users').get().then(function(querySnap){
+                if(querySnap.empty){
+                        projectsDisplay.innerHTML = "There currently aren't any users...";
+                }else{
+                   if( category == "ALL" || category == "UNDEFINED"){
+                       category = "";
+                   }
+                   querySnap.forEach(function(doc){
+                       db.collection('users').doc(doc.id).collection('projects').get().then(function(projectSnap){
+                            projectSnap.forEach(function(projectDoc){
+                                var project    = projectDoc.data();
+                                console.log(project.tags.toUpperCase() + " " + category + " " + project.tags.toUpperCase().indexOf(category));
+                                if (project.tags.toUpperCase().indexOf(category) != -1 && doc.id != firebase.auth().currentUser.uid){
+                                    var dynamicEle = document.createElement('my-project-card');
+                                    dynamicEle.projectName        = project.name;
+                                    dynamicEle.projectCategory    = project.category;
+                                    dynamicEle.tagWords           = project.tags;
+                                    dynamicEle.projectDescription = project.description;
+                                    dynamicEle.testTaken          = project.testTaken;
+                                    dynamicEle.id                 = projectDoc.id;
+                                    dynamicEle.userId             = project.userId;
+                                    pDisplay.appendChild(dynamicEle);                          
+                                }
+                            });
+                       });
+                   }); 
+                }
+            }).then(function(){
+                spinner1.style.display = 'none';
+                pDisplay.style.display = 'block';
+            });
+        }
+        
+    }
+
+    window.customElements.define(MyProjectBrowser.is, MyProjectBrowser);
+  </script>
+</dom-module>
