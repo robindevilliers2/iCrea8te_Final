@@ -33,7 +33,8 @@
     "highcharts-chart": "avdaredevil/highcharts-chart#^2.0.2",
     "ability-chart": "yuanfux/ability-chart#^1.1.9",
     "paper-toast": "PolymerElements/paper-toast#^2.1.2",
-    "paper-dialog": "PolymerElements/paper-dialog#^2.1.1"
+    "paper-dialog": "PolymerElements/paper-dialog#^3.0.1",
+    "paper-tooltip": "PolymerElements/paper-tooltip#2.1.1"
   },
   "resolutions": {
     "polymer": "^2.0.0",

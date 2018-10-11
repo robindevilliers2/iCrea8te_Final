@@ -7,6 +7,7 @@
 <link rel="import" href="../bower_components/paper-card/paper-card.html">
 <link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../bower_components/ability-chart/ability-chart.html">
+<link rel="import" href="../bower_components/paper-tooltip/paper-tooltip.html">
 <link rel="import" href="my-design-card.html">
 <link rel="import" href="my-message-threads.html">
 <dom-module id="my-project-dashboard">
@@ -51,7 +52,10 @@
             </div>
             <h1 id = "projectName" style="font-weight: 700; font-size: 18px;">Project Name</h1>
             <h3 id = "projectCategory" style="font-weight: 500; font-size: 16px;">Category</h3>
-            <strong> Assigned to: &nbsp;<text id = "assignee"></text> </strong>
+            <strong> Assigned to: &nbsp;<a><span on-click="_designerStats"><text id = "assignee"></text> </span></a></strong>
+            <paper-tooltip id="tooltip" for="assignee" animation-delay="200" animation-entry="scale-up-animation" animation-exit="scale-down-animation">
+              Click here for more information on the designer
+            </paper-tooltip>
             <paper-button id = "assignBtn" class="mainBtn" style="background-color: #479" on-click="assignProject">Assign to  me</paper-button>
             </div>
         </div>
@@ -115,7 +119,8 @@
                 type: String,
                 notify: true,
                 observer: '_newProject'
-            }
+            },
+            designerID: String
         };
       }
         
@@ -150,12 +155,13 @@
             addDesign.style.display = 'none';
             projectId = pId;
             console.log("uid: " + userId + " pId: " + pId);
-            db.collection('users').doc(userId).collection('projects').doc(pId).get().then(function(doc){
+            db.collection('users').doc(userId).collection('projects').doc(pId).get().then(doc =>{
                 var project = doc.data();
                 pname.innerHTML           = project.name;
                 pcat.innerHTML            = project.category;
                 description.innerHTML     = project.description;
                 assignedTo                = project.assignedTo;
+                this.designerID = assignedTo;
 
                 console.log(chart);
                 console.log("assTo: " + assignedTo);
@@ -240,6 +246,12 @@
             }).catch(e => {console.log(e.message)});
         }
         
+        _designerStats () {
+            localStorage.setItem("designerID", this.designerID);
+            window.history.pushState({}, null, '/designer-stats');
+            window.dispatchEvent(new CustomEvent("location-changed")); 
+        }
+        
         dislikedClicked(){
            window.history.pushState({}, null, '/project-dislikes');
             window.dispatchEvent(new CustomEvent("location-changed")); 
@@ -259,8 +271,9 @@
             console.log("Testing  the assign button");
              var pId    = projectId;
              var userId = this.uid;
-             var desId  = firebase.auth().currentUser.uid
+             var desId  = firebase.auth().currentUser.uid;
              console.log(pId + "What up" );
+             var d = new Date();
              db.collection('users').doc(userId).collection('projects').doc(pId).get().then(function(doc){
                  var project = doc.data();
                  console.log("Assigning project ... ");
@@ -278,7 +291,8 @@
                         classic    : project.classic,
                         userProject: doc.id,
                         tags       : project.tags,
-                        assignedTo : desId
+                        assignedTo : desId,
+                        dateStarted: d
                  }).then(function(doc){
                    pId.data = doc.id;
                    db.collection('users').doc(userId).collection('projects').doc(pId).update({

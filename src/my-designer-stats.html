@@ -1,0 +1,159 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-divider/paper-divider.html">
+<link rel="import" href="../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+<dom-module id="my-designer-stats">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+        iron-icon.starGold {
+          color: var(--paper-amber-500);
+        }
+        iron-icon.starGrey: { color: var(--paper-grey-500); }
+        
+        paper-spinner.multi {
+            width: 50px;
+            height: 50px;
+          --paper-spinner-layer-1-color: var(--paper-purple-500);
+          --paper-spinner-layer-2-color: var(--paper-cyan-500);
+          --paper-spinner-layer-3-color: var(--paper-blue-grey-500);
+          --paper-spinner-layer-4-color: var(--paper-amber-500);
+        }
+    </style>
+      
+      <app-location route="{{route}}"></app-location>
+      <app-route
+        route="{{route}}"
+        pattern="[[rootPattern]]:page"
+        data="{{routeData}}"
+        tail="{{subroute}}"></app-route>
+      
+      <div id="spinner" style= "text-align: center;">
+        <paper-spinner class="multi"  style="margin-top: 5%;" active></paper-spinner>
+      </div>
+      
+      <div id="designerInfo" style="text-align: center; display: none;">
+          <paper-card style = 'width: 70%; padding-left: 5%; padding-right: 5%;'>
+              <strong style = "font-size: 22px">[[designerName]] </strong> <br>
+              <text>Company: [[designerCompany]] </text><br>
+              <text>Email: [[designerEmail]] </text><br>
+              <hr style = "border: 0; width: 90%; color: #aac; background-color: #aac; height: 1px;"> <br>
+              <strong style = "font-size: 18px">Ratings: out of [[ratings]]</strong>
+              <div id="rating">
+              </div>
+              <br>
+              <div>
+                  <strong style = "font-size: 18px">Average Time (in days) to complete accepted project:</strong>
+                  <br>
+              </div>
+              
+              <div>
+                  <strong style = "font-size: 18px">[[averageTime]]</strong>
+                  <br>
+              </div>
+
+              <div>
+                  <strong style = "font-size: 18px">Projects completed: [[projectsDone]]</strong>
+              </div>
+          </paper-card>
+      </div>
+    
+  </template>
+
+  <script>
+
+/**
+* need to get the ID of the designer.
+* need to get the ID of the designer.
+*/  
+
+    class MyDesignerStats extends Polymer.Element {
+      static get is() { return 'my-designer-stats'; }
+        
+        
+        static get properties() {
+        return {
+            designerName: {
+                type: String,
+                notify: true
+            },
+            designerCompany: {
+                type: String,
+                notify: true
+            },
+            designerEmail: {
+                type: String,
+                notify: true
+            },
+            projectsDone: {
+                type: String,
+                notify: true
+            },
+            ratings: {
+                type: String,
+                notify: true
+            },
+            averageDays: {
+                type: Number,
+                notify: true
+            }
+        };
+      }
+        
+        static get observers () {
+            return [
+                '_pageChanged(route.path)'
+            ];
+        }
+        
+       _pageChanged(page) {
+            if(page == '/designer-stats') {
+                var designerID = localStorage.getItem("designerID");
+                db.collection("users").doc(designerID).get().then(doc => {
+                    var data = doc.data();
+                    var daysConst = 1000 * 60 * 60 * 24;
+                    var averageDays = Math.round(data.averageTime / daysConst);
+                    var averageStars = Math.round(data.stars / data.ratings);
+                    console.log('averageStars');
+                    console.log(averageStars);
+                    for (var a = 1; a <= 5; a++) {
+                        var dynamicEle = document.createElement('iron-icon');
+                        dynamicEle.icon = "star";
+                        if(averageStars >= a)
+                            dynamicEle.classList.add("starGold");
+                        else
+                            dynamicEle.classList.add("starGrey");
+                        this.$.rating.appendChild(dynamicEle);
+                    }
+                    this.set('designerName', data.name);
+                    this.set('designerCompany', data.company);
+                    this.set('designerEmail', data.email);
+                    this.set('projectsDone', data.projectsDone);
+                    this.set('ratings', data.ratings);
+                    this.set('averageTime', averageDays);
+                }).then(e => {
+                    this.$.spinner.style.display = "none";
+                    this.$.designerInfo.style.display = "block";
+                }).catch(error => {
+                    console.error("An error occured");
+                    console.log(error.message);
+                    console.log(error);
+                });
+            }
+       }
+        
+    }
+
+    window.customElements.define(MyDesignerStats.is, MyDesignerStats);
+  </script>
+</dom-module>

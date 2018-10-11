@@ -6,7 +6,10 @@
 <link rel="import" href="../bower_components/paper-input/paper-textarea.html">
 <link rel="import" href="../bower_components/paper-card/paper-card.html">
 <link rel="import" href="../bower_components/iron-image/iron-image.html">
-
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../bower_components/neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../bower_components/neon-animation/animations/fade-out-animation.html">
 
 <dom-module id="my-proposed-design">
   <template>
@@ -28,9 +31,31 @@
           opacity: 1;
         };
       }
+        
+        iron-icon.starGold {
+          color: var(--paper-amber-500);
+        }
+        iron-icon.starGrey: { color: var(--paper-grey-500); }
 
     </style>
       <app-localstorage-document id="designId" key="designId" data="{{designId}}"></app-localstorage-document>
+      
+      <paper-dialog id="rating" no-cancel-on-outside-click no-cancel-on-esc-key entry-animation="scale-up-animation" exit-animation="fade-out-animation" style="margin-left: 32px;">
+          <h2>Designer Rating</h2>
+          <br>
+          <p>Please rate your experience with this designer</p>
+          <hr style = "border: 0; width: 90%; color: #aac; background-color: #aac; height: 1px;"> <br>
+          <div style="text-align: center;">
+              <iron-icon id="star1" on-click="_stars" value="1" icon="star"></iron-icon>
+              <iron-icon id="star2" on-click="_stars" value="2" icon="star"></iron-icon>
+              <iron-icon id="star3" on-click="_stars" value="3" icon="star"></iron-icon>
+              <iron-icon id="star4" on-click="_stars" value="4" icon="star"></iron-icon>
+              <iron-icon id="star5" on-click="_stars" value="5" icon="star"></iron-icon>
+          </div>
+          <div style="text-align: center;">
+              <paper-button on-click="_closeRating">Accept</paper-button>
+          </div>
+      </paper-dialog>
 
       <div style="text-align: center">
       <div style='text-align: center'>
@@ -159,6 +184,69 @@
             propDesignImg.appendChild(dynamicEle);
           }).catch(e => {console.log(e.message)});
         }
+        
+        _stars(e) {
+            var num = parseInt(e.currentTarget.getAttribute("value"));
+            for (var a = 0; a < 5; a++ ){
+                this.shadowRoot.querySelector("#star" + (a+1)).classList.remove("starGold");
+                this.shadowRoot.querySelector("#star" + (a+1)).classList.add("starGrey");
+            }
+            for (var b = 0; b < num; b++ ){
+                this.shadowRoot.querySelector("#star" + (b+1)).classList.remove("starGrey");
+                this.shadowRoot.querySelector("#star" + (b+1)).classList.add("starGold");
+            }
+            this.stars = num;
+        }
+        
+        _closeRating () {
+            if (this.shadowRoot.querySelector("#star1").classList.contains("starGold")) {
+                var designerID = localStorage.getItem("designerID");
+                var currUser = JSON.parse(localStorage.getItem("currUser"));
+                var projectId = JSON.parse(localStorage.getItem("projectId"));
+                var today = new Date();
+                var dateStarted;
+                var ratings = 0;
+                var stars = 0;
+                var projectsDone = 0;
+                var averageTime = 0;
+                var toAdd = this.stars;
+                db.collection("users").doc(currUser).collection("projects").doc(projectId).get()
+                .then(doc => {
+                    var data = doc.data();
+                    dateStarted = data.dateStarted;
+                    var timeTaken = today.getTime() - dateStarted.getTime();
+                    db.collection("users").doc(designerID).get().then(nextDoc => {
+                        var data = nextDoc.data();
+                        ratings = data.ratings;
+                        stars = data.stars;
+                        projectsDone = data.projectsDone;
+                        averageTime = data.averageTime * data.projectsDone;
+                        console.log('ratings');
+                        console.log(ratings);
+                        console.log('stars');
+                        console.log(stars);
+                        console.log('projectsDone');
+                        console.log(projectsDone);
+                        console.log('averageTime');
+                        console.log(averageTime);
+                        db.collection("users").doc(designerID).update({
+                            ratings: (ratings + 1),
+                            stars: (stars + toAdd),
+                            averageTime: (averageTime + timeTaken)/(projectsDone+1)
+                        }).then(e => {
+                            console.log("success at adding stars");
+                            this.$.comments.value = "Perfect!";
+                            this.$.rating.close();
+                            this.submitFeedback();
+                        });
+                    }).catch(error => {
+                        console.error('ERROR');
+                        console.error(error);
+                    });
+                });
+            } else
+                alert("Please select a rating");
+        }
 
         feedbackClicked(e){
           var feedbackValue = e.currentTarget.getAttribute("value");
@@ -173,6 +261,25 @@
           e.currentTarget.style.borderColor = "gold";
           e.currentTarget.style.borderWidth = "thick";
           feedback = e.currentTarget.getAttribute("value");
+          console.log('e.currentTarget.innerHTML');
+          console.log(e.currentTarget.innerHTML);
+          if(e.currentTarget.innerHTML == "Perfect!") {
+              var designerID = localStorage.getItem("designerID");
+              var projectsDone = 0;
+              db.collection("users").doc(designerID).get().then(doc => {
+                  var data = doc.data();
+                  projectsDone = data.projectsDone + 1;
+                  db.collection("users").doc(designerID).update({
+                      projectsDone: projectsDone
+                  });
+              }).then(e => {
+                  console.log("updated Designers projects");
+              }).catch(error => {
+                  console.error("ERROR");
+                  console.log(error);
+              });
+              this.$.rating.open();
+          }
         }
 
         submitFeedback(){

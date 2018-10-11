@@ -26,6 +26,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="my-project-messages-dashboard.html">
 <link rel="import" href="my-icons.html">
 
 <link rel="lazy-import" href="my-main.html">
@@ -41,7 +42,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="lazy-import" href="my-upload-design.html">
 <link rel="lazy-import" href="my-project-messages.html">
 <link rel="lazy-import" href="my-message-threads.html">
-<link rel="import" href="my-project-messages-dashboard.html">
+<link rel="lazy-import" href="my-designer-stats.html">
 
 <dom-module id="my-app">
   <template>
@@ -148,6 +149,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <my-proposed-design curr-user="[[currUser]]" design-id = "{{designId}}" name="proposed-design" ></my-proposed-design>
             <my-project-messages-dashboard toast="{{toast}}" toast-message="{{toastMessage}}" name="project-messages-dashboard"></my-project-messages-dashboard>
             <my-project-messages name="project-messages"></my-project-messages>
+            <my-designer-stats name="designer-stats"></my-designer-stats>
         </iron-pages>
       </app-header-layout>
     </app-drawer-layout>
