@@ -73,9 +73,9 @@
             
              if(this._validateSignIn()){
                 const auth = firebase.auth();
-                const res = auth.createUserWithEmailAndPassword(email,pass);
-                res.then(function (user){
-                    db.collection('users').doc(user.uid).set({
+                auth.createUserWithEmailAndPassword(email,pass).then(function (user){
+                    console.log(user);
+                    db.collection('users').doc(user.id).set({
                         email: email,
                         name: name,
                         company: company,

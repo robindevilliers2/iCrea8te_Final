@@ -5,6 +5,7 @@
     "src/my-view1.html",
     "src/my-view2.html",
     "src/my-view3.html",
+    "src/my-project-messages-dashboard.html",
     "src/my-view404.html"
   ],
   "sources": [
@@ -21,12 +22,6 @@
   "builds": [
     {
       "preset": "es5-bundled"
-    },
-    {
-      "preset": "es6-bundled"
-    },
-    {
-      "preset": "es6-unbundled"
     }
   ]
 }
